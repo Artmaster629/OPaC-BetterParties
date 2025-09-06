@@ -7,6 +7,7 @@
   "mixins": [
     "ClaimCreationDenyMixin",
     "ClaimCreationPartyOwnerMixin",
-    "ConfigSetCommandMixin"
+    "ConfigSetCommandMixin",
+    "MixinOPACClientTickHandler"
   ]
 }
