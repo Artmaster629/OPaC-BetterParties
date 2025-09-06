@@ -4,9 +4,16 @@ import net.artmaster.openpacbp.gui.PartyGUIRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.network.codec.StreamCodec;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+import xaero.pac.client.api.OpenPACClientAPI;
+import xaero.pac.client.parties.party.api.IClientPartyAPI;
+import xaero.pac.common.server.api.OpenPACServerAPI;
+import xaero.pac.common.server.parties.party.IServerParty;
+
+import java.util.UUID;
 
 public class Network {
 
@@ -61,6 +68,16 @@ public class Network {
                     }
                 })
         );
+
+//        registrar.playToServer(RequestDataPacket.TYPE, RequestDataPacket.CODEC, (packet, ctx) ->
+//                ctx.enqueueWork(() -> {
+//                    ServerPlayer player = (ServerPlayer) ctx.player();
+//                    if (player != null) {
+//                        IClientPartyAPI partyAPI = ((IClientPartyAPI) OpenPACServerAPI.get(player.server).getPartyManager().getPartyById(packet.uuid()));
+//                        sendParty(partyAPI, player);
+//                    }
+//                })
+//        );
     }
 
     // Отправка GUI (сервер -> клиент)
@@ -72,9 +89,19 @@ public class Network {
     public static void sendCommand(ServerPlayer player, String command) {
         player.connection.send(new RunCommandPacket(command));
     }
+    // Отправка пати (сервер -> клиент)
+//    public static void sendParty(IClientPartyAPI partyAPI, ServerPlayer player) {
+//        player.connection.send(new ResponseDataPacket(partyAPI));
+//    }
+
 
     // Отправка нажатия кнопки (клиент -> сервер)
     public static void sendButtonClick(String command) {
         Minecraft.getInstance().getConnection().send(new ButtonClickPacket(command));
     }
+
+    // Отправка пати (клиент -> сервер)
+    //public static void getPartyByUUID(UUID uuid) {
+      //  Minecraft.getInstance().getConnection().send(new RequestDataPacket(uuid));
+    //}
 }

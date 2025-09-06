@@ -12,10 +12,17 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.resources.ResourceLocation;
+import org.jetbrains.annotations.NotNull;
+import xaero.common.XaeroMinimapSession;
+import xaero.common.graphics.CustomVertexConsumers;
+import xaero.common.minimap.MinimapProcessor;
 import xaero.pac.client.api.OpenPACClientAPI;
 import xaero.pac.client.claims.api.IClientClaimsManagerAPI;
 import xaero.pac.client.parties.party.api.IClientPartyStorageAPI;
+import xaero.pac.common.parties.party.ally.api.IPartyAllyAPI;
+import xaero.pac.common.parties.party.api.IPartyPlayerInfoAPI;
 import xaero.pac.common.parties.party.member.api.IPartyMemberAPI;
+import xaero.pac.common.server.api.OpenPACServerAPI;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,10 +44,14 @@ public class PartyGUIRenderer extends Screen {
     ResourceLocation purpleButtonTexture = ResourceLocation.fromNamespaceAndPath("openpacbp", "textures/buttons/purple_button.png");
 
     List<Object> members = new ArrayList<>();
+    List<Object> allies = new ArrayList<>();
+    List<Object> invites = new ArrayList<>();
 
     IClientClaimsManagerAPI claimsManager = OpenPACClientAPI.get().getClaimsManager();
     IClientPartyStorageAPI partyManager = OpenPACClientAPI.get().getClientPartyStorage();
     List<IPartyMemberAPI> members_list = Objects.requireNonNull(partyManager.getParty()).getMemberInfoStream().toList();
+    List<IPartyAllyAPI> allies_list = Objects.requireNonNull(partyManager.getParty()).getAllyPartiesStream().toList();
+    List<IPartyPlayerInfoAPI> invites_list = Objects.requireNonNull(partyManager.getParty()).getInvitedPlayersStream().toList();
 
     protected void getPartyMembers() {
         if (members_list.size() == 1) {
@@ -49,6 +60,16 @@ public class PartyGUIRenderer extends Screen {
             for (int i=0; i<=members_list.size(); i++) {
                 members.add(members_list.get(i).getUsername()+"["+members_list.get(i).getRank()+"]");
             }
+        }
+    }
+    protected void getPartyAllies() {
+        for (int i=0; i<=allies_list.size(); i++) {
+            allies.add(allies_list.get(i).getPartyId());
+        }
+    }
+    protected void getPartyInvites() {
+        for (int i=0; i<=invites_list.size(); i++) {
+            invites.add(invites_list.get(i).getUsername());
         }
     }
 
@@ -79,6 +100,7 @@ public class PartyGUIRenderer extends Screen {
 
     @Override
     protected void init() {
+
 
         this.textBox = new EditBox(
                 this.font,
@@ -150,12 +172,34 @@ public class PartyGUIRenderer extends Screen {
         );
         this.addRenderableWidget(
                 Button.builder(
-                                Component.literal("Повысить"),
+                                Component.literal("У"),
                                 (btn) -> onButtonClick()
                         ).bounds(
                                 this.managePlayerBox.getX()+130,
                                 this.managePlayerBox.getY()+20,
-                                70,
+                                20,
+                                20)
+                        .build()
+        );
+        this.addRenderableWidget(
+                Button.builder(
+                                Component.literal("М"),
+                                (btn) -> onButtonClick()
+                        ).bounds(
+                                this.managePlayerBox.getX()+150,
+                                this.managePlayerBox.getY()+20,
+                                20,
+                                20)
+                        .build()
+        );
+        this.addRenderableWidget(
+                Button.builder(
+                                Component.literal("А"),
+                                (btn) -> onButtonClick()
+                        ).bounds(
+                                this.managePlayerBox.getX()+170,
+                                this.managePlayerBox.getY()+20,
+                                20,
                                 20)
                         .build()
         );
@@ -224,7 +268,9 @@ public class PartyGUIRenderer extends Screen {
 
 
 
+
         assert this.minecraft != null;
+
         assert this.minecraft.player != null;
         int claims = claimsManager.getPlayerInfo(this.minecraft.player.getUUID()).getClaimCount();
 
@@ -238,6 +284,8 @@ public class PartyGUIRenderer extends Screen {
         String partyName = "Гильдия: "+partyManager.getPartyName();
         String partyOwner = "Владелец: "+partyManager.getParty().getOwner().getUsername();
         String partyMembersCount = "Участников: "+partyManager.getUIMemberCount()+"/"+partyManager.getMemberLimit();
+        String partyAlliesCount = "Союзников: "+partyManager.getUIAllyCount()+"/"+partyManager.getAllyLimit();
+        String partyInvitesCount = "Приглашений: "+partyManager.getUIInviteCount()+"/"+partyManager.getInviteLimit();
         Component partyColor = Component.literal("Цвет: ").withStyle(ChatFormatting.WHITE)
                 .append(Component.literal(""+TextColor.fromRgb(claimsManager.getPlayerInfo(this.minecraft.player.getUUID()).getClaimsColor())).withStyle(style -> style.withColor(TextColor.fromRgb(claimsManager.getPlayerInfo(this.minecraft.player.getUUID()).getClaimsColor())))
                 );
@@ -256,6 +304,11 @@ public class PartyGUIRenderer extends Screen {
 
         guiGraphics.pose().popPose();
 
+        guiGraphics.pose().pushPose();
+
+
+
+
 
 
 
@@ -271,8 +324,10 @@ public class PartyGUIRenderer extends Screen {
         guiGraphics.drawString(this.font, partyOwner, this.textBox.getWidth()+20, this.textBox.getY() + 20, 0xFFFFFF);
         guiGraphics.drawString(this.font, partyColor, this.textBox.getWidth()+20, this.textBox.getY() + 40, 0xFFFFFF);
         guiGraphics.drawString(this.font, limit, this.textBox.getWidth()+20, this.textBox.getY() + 60, 0xFFFFFF);
-        guiGraphics.drawString(this.font, partyMembersCount, this.textBox.getWidth()+20, this.textBox.getY() + 80, 0xFFFFFF);
-        guiGraphics.drawString(this.font, members.toString(), this.textBox.getWidth()+20, this.textBox.getY() + 100, 0xFFFFFF);
+        guiGraphics.drawString(this.font, partyInvitesCount, this.textBox.getWidth()+20, this.textBox.getY() + 80, 0xFFFFFF);
+        guiGraphics.drawString(this.font, partyAlliesCount, this.textBox.getWidth()+20, this.textBox.getY() + 100, 0xFFFFFF);
+        guiGraphics.drawString(this.font, partyMembersCount, this.textBox.getWidth()+20, this.textBox.getY() + 120, 0xFFFFFF);
+        guiGraphics.drawString(this.font, members.toString(), this.textBox.getWidth()+20, this.textBox.getY() + 140, 0xFFFFFF);
 
 
         this.textBox.render(guiGraphics, mouseX, mouseY, delta);
@@ -362,6 +417,8 @@ public class PartyGUIRenderer extends Screen {
             if (minecraft.getConnection() != null) {
                 LocalPlayer player = minecraft.player;
 
+
+
                 if (!this.textBox.getValue().isEmpty()) {
                     Network.sendButtonClick("openpac player-config set parties.name "+text);
                     Network.sendButtonClick("openpac player-config set claims.name "+text);
@@ -386,6 +443,8 @@ public class PartyGUIRenderer extends Screen {
             }
         }
     }
+
+
     private void onColorButtonClick(String color) {
         if (this.minecraft != null && this.minecraft.player != null) {
             this.colorBox.setValue(color);
@@ -430,3 +489,34 @@ public class PartyGUIRenderer extends Screen {
         }
     }
 }
+
+// вызываем отрисовку миникарты
+//        XaeroMinimapSession session = XaeroMinimapSession.getCurrentSession();
+//        if (session == null) return;
+//
+//        MinimapProcessor processor = session.getMinimapProcessor();
+//        if (processor == null) return;
+//
+//        int size = processor.getMinimapSize();
+//        int boxSize = size;
+//        int width = this.width;
+//        int height = this.height;
+//        double scale = 0.75;
+//
+//        CustomVertexConsumers cvc = new CustomVertexConsumers();
+//
+//
+//        processor.onRender(
+//                guiGraphics,
+//                this.textBox.getWidth()*5, -100,
+//                width, height,
+//                scale,
+//                size, boxSize,
+//                delta,
+//                cvc
+//        );
+//
+//        guiGraphics.pose().popPose();
+//// переносим "камеру" туда, где хотим миникарту
+////        guiGraphics.pose().translate(50, 50, 0); // x=50, y=50
+////        guiGraphics.pose().scale(0.5f, 0.5f, 1.0f); // уменьшаем карту в 2 раза
