@@ -1,7 +1,9 @@
 package net.artmaster.openpacbp.gui;
 
 import net.artmaster.openpacbp.api.gui.ColorButton;
+import net.artmaster.openpacbp.api.quests.menu.GlobalStorageMenu;
 import net.artmaster.openpacbp.network.Network;
+import net.artmaster.openpacbp.network.QuestButtonClickPacket;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -12,6 +14,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.Container;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.NotNull;
 import xaero.common.XaeroMinimapSession;
 import xaero.common.graphics.CustomVertexConsumers;
@@ -24,12 +30,14 @@ import xaero.pac.common.parties.party.api.IPartyPlayerInfoAPI;
 import xaero.pac.common.parties.party.member.api.IPartyMemberAPI;
 import xaero.pac.common.server.api.OpenPACServerAPI;
 
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 
 public class PartyGUIRenderer extends Screen {
+
 
     Minecraft mc = Minecraft.getInstance();
 
@@ -252,6 +260,22 @@ public class PartyGUIRenderer extends Screen {
                 Component.literal(""),
                 btn -> onColorButtonClick("6a2e6c")
         ));
+
+
+        this.addRenderableWidget(
+                Button.builder(
+                                Component.literal("Квесты"),
+                                (btn) -> onQuestMenuOpen()
+                        ).bounds(
+                                this.managePlayerBox.getX()+130,
+                                this.managePlayerBox.getY()+80,
+                                20,
+                                20)
+                        .build()
+        );
+
+
+
         if (members.isEmpty()) {
             getPartyMembers();
         }
@@ -434,6 +458,11 @@ public class PartyGUIRenderer extends Screen {
             }
         }
     }
+
+    private void onQuestMenuOpen() {
+        Network.sendQuestButtonClick("");
+    }
+
     private void onExitButtonClick() {
         if (this.minecraft != null && this.minecraft.player != null) {
 

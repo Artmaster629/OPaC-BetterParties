@@ -41,7 +41,7 @@ public abstract class ClaimCreationPartyOwnerMixin {
         IPartyManagerAPI partyManager = OpenPACServerAPI.get(server).getPartyManager();
         IServerPartyAPI party = partyManager.getPartyByMember(id);
         var partyAll =  OpenPACServerAPI.get(server).getServerClaimsManager().getPlayerInfo(id);
-        System.out.println(partyAll);
+
 
 
         if (party != null) {
@@ -51,6 +51,8 @@ public abstract class ClaimCreationPartyOwnerMixin {
             int claimedChunks = claimManager.getPlayerInfo(ownerId).getClaimCount();
 
             System.out.println(claimManager.getPlayerBaseClaimLimit(id));
+
+
 
             LogUtils.getLogger().info("Party "+claimManager.getPlayerInfo(ownerId).getClaimsName()+" now has "+claimedChunks+"/"+claimManager.getPlayerBaseClaimLimit(ownerId)+" chunks");
             //Проверка на лимит чанков

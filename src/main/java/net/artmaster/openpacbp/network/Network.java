@@ -1,12 +1,17 @@
 package net.artmaster.openpacbp.network;
 
+import net.artmaster.openpacbp.api.quests.menu.GlobalStorageMenu;
 import net.artmaster.openpacbp.gui.PartyGUIRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.world.Container;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.SimpleMenuProvider;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import xaero.pac.client.api.OpenPACClientAPI;
 import xaero.pac.client.parties.party.api.IClientPartyAPI;
@@ -60,6 +65,18 @@ public class Network {
                 ctx.enqueueWork(() -> {
                     ServerPlayer player = (ServerPlayer) ctx.player();
                     if (player != null) {
+                        Container storageContainer = new SimpleContainer(9);
+                        player.openMenu(new SimpleMenuProvider(
+                                (id, inv, buf) -> new GlobalStorageMenu(id, inv, storageContainer),
+                                Component.literal("Глобальное хранилище")
+                        ));
+                    }
+                })
+        );
+        registrar.playToServer(QuestButtonClickPacket.TYPE, QuestButtonClickPacket.CODEC, (packet, ctx) ->
+                ctx.enqueueWork(() -> {
+                    ServerPlayer player = (ServerPlayer) ctx.player();
+                    if (player != null) {
                         player.server.getCommands().performPrefixedCommand(
                                 player.createCommandSourceStack(),
                                 packet.command()
@@ -98,6 +115,10 @@ public class Network {
     // Отправка нажатия кнопки (клиент -> сервер)
     public static void sendButtonClick(String command) {
         Minecraft.getInstance().getConnection().send(new ButtonClickPacket(command));
+    }
+
+    public static void sendQuestButtonClick(String command) {
+        Minecraft.getInstance().getConnection().send(new QuestButtonClickPacket(command));
     }
 
     // Отправка пати (клиент -> сервер)
