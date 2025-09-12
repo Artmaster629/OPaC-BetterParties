@@ -1,24 +1,22 @@
 package net.artmaster.openpacbp.network;
 
+import net.artmaster.openpacbp.api.quests.GlobalStorageData;
+import net.artmaster.openpacbp.api.quests.MyAttachments;
+import net.artmaster.openpacbp.api.quests.PlayerInventoryData;
 import net.artmaster.openpacbp.api.quests.menu.GlobalStorageMenu;
-import net.artmaster.openpacbp.gui.PartyGUIRenderer;
+import net.artmaster.openpacbp.client.PartyGUIRenderer;
+import net.artmaster.openpacbp.network.party_name.GetPartyNameClientPacket;
+import net.artmaster.openpacbp.network.party_name.PartyNameResponsePacket;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.SimpleMenuProvider;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
-import xaero.pac.client.api.OpenPACClientAPI;
-import xaero.pac.client.parties.party.api.IClientPartyAPI;
-import xaero.pac.common.server.api.OpenPACServerAPI;
-import xaero.pac.common.server.parties.party.IServerParty;
-
-import java.util.UUID;
 
 public class Network {
 
@@ -32,6 +30,18 @@ public class Network {
 
                 @Override
                 public void encode(RegistryFriendlyByteBuf buf, OpenGuiPacket packet) {
+                    // пусто, пакет не содержит данных
+                }
+            };
+    public static final StreamCodec<RegistryFriendlyByteBuf, GetPartyNameClientPacket> CODEC_2 =
+            new StreamCodec<>() {
+                @Override
+                public GetPartyNameClientPacket decode(RegistryFriendlyByteBuf buf) {
+                    return new GetPartyNameClientPacket();
+                }
+
+                @Override
+                public void encode(RegistryFriendlyByteBuf buf, GetPartyNameClientPacket packet) {
                     // пусто, пакет не содержит данных
                 }
             };
@@ -49,7 +59,6 @@ public class Network {
         registrar.playToClient(OpenGuiPacket.TYPE, CODEC, (packet, ctx) ->
                 ctx.enqueueWork(() -> Minecraft.getInstance().setScreen(new PartyGUIRenderer()))
         );
-
 // 2. RunCommandPacket (сервер -> клиент)
         registrar.playToClient(RunCommandPacket.TYPE, RunCommandPacket.CODEC, (packet, ctx) ->
                 ctx.enqueueWork(() -> {
@@ -73,6 +82,25 @@ public class Network {
                     }
                 })
         );
+        registrar.playToServer(GetPartyNameClientPacket.TYPE, CODEC_2,
+                (packet, ctx) -> {
+                    ServerPlayer player = (ServerPlayer) ctx.player();
+                    GlobalStorageData storage = player.serverLevel().getData(MyAttachments.GLOBAL_STORAGE);
+                    PlayerInventoryData inv = storage.getOrCreatePlayerInv(player.getUUID());
+                    String partyName = inv.getPartyName();
+
+                    // Отправляем обратно клиенту
+                    ctx.reply(new PartyNameResponsePacket(partyName));
+                });
+
+        registrar.playToClient(PartyNameResponsePacket.TYPE, PartyNameResponsePacket.CODEC,
+                (packet, ctx) -> {
+                    ctx.enqueueWork(() -> {
+                        Network.setPartyName(packet.partyName());
+                    });
+                });
+
+
         registrar.playToServer(QuestButtonClickPacket.TYPE, QuestButtonClickPacket.CODEC, (packet, ctx) ->
                 ctx.enqueueWork(() -> {
                     ServerPlayer player = (ServerPlayer) ctx.player();
@@ -117,8 +145,21 @@ public class Network {
         Minecraft.getInstance().getConnection().send(new ButtonClickPacket(command));
     }
 
-    public static void sendQuestButtonClick(String command) {
-        Minecraft.getInstance().getConnection().send(new QuestButtonClickPacket(command));
+    private static String cachedPartyName = "";
+
+    // Вызывается при старте GUI, чтобы запросить имя
+    public static void requestPartyName() {
+        Minecraft.getInstance().getConnection().send(new GetPartyNameClientPacket());
+    }
+
+    // Вызывается на клиенте, когда пришёл ответ
+    public static void setPartyName(String name) {
+        cachedPartyName = name;
+    }
+
+    // Просто возвращает последнюю известную строку
+    public static String getPartyName() {
+        return cachedPartyName;
     }
 
     // Отправка пати (клиент -> сервер)

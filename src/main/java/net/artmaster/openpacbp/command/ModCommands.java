@@ -1,11 +1,16 @@
 package net.artmaster.openpacbp.command;
 
 import net.artmaster.openpacbp.ModMain;
+import net.artmaster.openpacbp.api.quests.menu.GlobalStorageMenu;
 import net.artmaster.openpacbp.network.Network;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Container;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.SimpleMenuProvider;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
@@ -38,6 +43,23 @@ public class ModCommands {
                                     return 0;
                                 }
                                 Network.sendOpenGui(player);
+                            }
+                            return 1;
+                        })
+        );
+        event.getDispatcher().register(
+                Commands.literal("openpac-quests")
+                        .executes(ctx -> {
+                            CommandSourceStack source = ctx.getSource();
+                            if (source.getEntity() instanceof net.minecraft.server.level.ServerPlayer player) {
+                                // Отправляем пакет на клиент, чтобы открыть GUI
+                                if (player != null) {
+                                    Container storageContainer = new SimpleContainer(9);
+                                    player.openMenu(new SimpleMenuProvider(
+                                            (id, inv, buf) -> new GlobalStorageMenu(id, inv, storageContainer),
+                                            Component.literal("Глобальное хранилище")
+                                    ));
+                                }
                             }
                             return 1;
                         })

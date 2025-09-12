@@ -1,23 +1,19 @@
 package net.artmaster.openpacbp.mixin;
 
-import net.artmaster.openpacbp.gui.PartyGUIRenderer;
+import net.artmaster.openpacbp.client.PartyGUIRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.bus.api.SubscribeEvent;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import xaero.pac.client.ClientTickHandler;
 import xaero.pac.client.api.OpenPACClientAPI;
-import xaero.pac.client.event.ClientEvents;
-import xaero.pac.client.parties.party.IClientParty;
 import xaero.pac.client.parties.party.api.IClientPartyAPI;
 import xaero.pac.client.parties.party.api.IClientPartyStorageAPI;
-import xaero.pac.common.parties.party.Party;
 
-@Mixin(ClientTickHandler.class) // <- реальный класс, куда делегирует ClientEvents
+@Mixin(ClientTickHandler.class)
 public class MixinOPACClientTickHandler {
 
     @Inject(

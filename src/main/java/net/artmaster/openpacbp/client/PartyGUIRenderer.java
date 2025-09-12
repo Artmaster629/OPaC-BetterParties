@@ -1,9 +1,7 @@
-package net.artmaster.openpacbp.gui;
+package net.artmaster.openpacbp.client;
 
 import net.artmaster.openpacbp.api.gui.ColorButton;
-import net.artmaster.openpacbp.api.quests.menu.GlobalStorageMenu;
 import net.artmaster.openpacbp.network.Network;
-import net.artmaster.openpacbp.network.QuestButtonClickPacket;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -14,21 +12,12 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.Container;
-import net.minecraft.world.SimpleContainer;
-import net.minecraft.world.SimpleMenuProvider;
-import net.minecraft.world.entity.player.Player;
-import org.jetbrains.annotations.NotNull;
-import xaero.common.XaeroMinimapSession;
-import xaero.common.graphics.CustomVertexConsumers;
-import xaero.common.minimap.MinimapProcessor;
 import xaero.pac.client.api.OpenPACClientAPI;
 import xaero.pac.client.claims.api.IClientClaimsManagerAPI;
 import xaero.pac.client.parties.party.api.IClientPartyStorageAPI;
 import xaero.pac.common.parties.party.ally.api.IPartyAllyAPI;
 import xaero.pac.common.parties.party.api.IPartyPlayerInfoAPI;
 import xaero.pac.common.parties.party.member.api.IPartyMemberAPI;
-import xaero.pac.common.server.api.OpenPACServerAPI;
 
 
 import java.util.ArrayList;
@@ -320,7 +309,6 @@ public class PartyGUIRenderer extends Screen {
         guiGraphics.pose().pushPose();
         guiGraphics.pose().scale(bigScale, bigScale, 1.0f);
 
-        // при скейле координаты тоже увеличиваются, поэтому делим
         int x = (int) (this.textBox.getWidth()*1.655 / 2f / bigScale);
         int y = (int) (20 / bigScale);
 
@@ -460,7 +448,7 @@ public class PartyGUIRenderer extends Screen {
     }
 
     private void onQuestMenuOpen() {
-        Network.sendQuestButtonClick("");
+        Network.sendButtonClick("openpac-quests");
     }
 
     private void onExitButtonClick() {

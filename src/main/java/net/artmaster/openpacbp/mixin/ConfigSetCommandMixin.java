@@ -12,7 +12,6 @@ import xaero.pac.common.server.command.ConfigSetCommand;
 @Mixin(ConfigSetCommand.class)
 public abstract class ConfigSetCommandMixin {
 
-    // Перехватываем вызов StringArgumentType.string() и подсовываем greedyString()
     @Redirect(
             method = "addValueArgumentIfNeeded",
             at = @At(

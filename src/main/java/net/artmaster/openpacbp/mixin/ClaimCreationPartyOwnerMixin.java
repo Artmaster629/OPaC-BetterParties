@@ -29,11 +29,10 @@ public abstract class ClaimCreationPartyOwnerMixin {
     private void onClaim(ResourceLocation dimension, UUID id, int subConfigIndex, int x, int z, boolean forceload, CallbackInfoReturnable<PlayerChunkClaim> cir) {
 
         MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
-        if (server == null) return; // нет сервера — выходим
+        if (server == null) return;
 
         ServerPlayer player = server.getPlayerList().getPlayer(id);
         if (player == null) {
-            // Не игрок, вызов из команды/скрипта
             return;
         }
 
@@ -45,7 +44,6 @@ public abstract class ClaimCreationPartyOwnerMixin {
 
 
         if (party != null) {
-            //Получение менеджера чанков, владельца клана и количества чанков владельца
             UUID ownerId = party.getOwner().getUUID();
             var claimManager = OpenPACServerAPI.get(server).getServerClaimsManager();
             int claimedChunks = claimManager.getPlayerInfo(ownerId).getClaimCount();
@@ -55,7 +53,6 @@ public abstract class ClaimCreationPartyOwnerMixin {
 
 
             LogUtils.getLogger().info("Party "+claimManager.getPlayerInfo(ownerId).getClaimsName()+" now has "+claimedChunks+"/"+claimManager.getPlayerBaseClaimLimit(ownerId)+" chunks");
-            //Проверка на лимит чанков
             if (claimManager.getPlayerBaseClaimLimit(ownerId) < claimedChunks) {
                 cir.setReturnValue(null);
                 player.displayClientMessage(Component.translatable("text.openpacbp.party_limit_reached"), false);
