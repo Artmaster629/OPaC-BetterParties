@@ -97,7 +97,6 @@ public abstract class ClaimCreationDenyMixin {
         ServerPlayer player = server.getPlayerList().getPlayer(id);
         if (player == null) return;
 
-        // Получаем лидера пати (если есть)
         IPartyManagerAPI partyManager = OpenPACServerAPI.get(server).getPartyManager();
         IServerPartyAPI party = partyManager.getPartyByMember(id);
 
@@ -106,17 +105,13 @@ public abstract class ClaimCreationDenyMixin {
         PlayerChunkClaim claim = getClaimState(effectiveId, subConfigIndex, forceload);
 
 
-        // Получаем менеджер приватов по измерению
         DimensionClaimsManager<?, ?> dimensionClaims = getDimension(dimension);
         if (dimensionClaims == null) {
-            // Нельзя вызвать ensureDimension напрямую, поэтому вызываем через API или ничего не делаем
             return;
         }
 
-        // Получаем менеджер игрока
         PlayerClaimInfoManager<?, ?> infoManager = getPlayerClaimInfoManager();
 
-        // Явно приводим к "сырым" типам — безопасно, так как ты контролируешь весь контекст
         @SuppressWarnings("unchecked")
         PlayerChunkClaim result = ((DimensionClaimsManager) dimensionClaims).claim(
                 x, z, claim, infoManager, configManager

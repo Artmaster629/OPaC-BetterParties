@@ -3,11 +3,8 @@
 //import net.artmaster.openpacbp.ModMain;
 //import net.artmaster.openpacbp.api.quests.GlobalStorageData;
 //import net.artmaster.openpacbp.api.quests.MyAttachments;
-//import net.artmaster.openpacbp.api.quests.PlayerInventoryData;
-//import net.minecraft.server.MinecraftServer;
 //import net.minecraft.server.level.ServerLevel;
 //import net.minecraft.server.level.ServerPlayer;
-//import net.minecraft.world.item.ItemStack;
 //import net.neoforged.bus.api.SubscribeEvent;
 //import net.neoforged.fml.common.EventBusSubscriber;
 //import net.neoforged.fml.common.Mod;
@@ -38,8 +35,9 @@
 //                        +". "+storage.getAll().values().stream().toList().get(i));
 //            }
 //            inv.getContainer().clearContent();
-//
-//
+
+
+
 ////            var savedContainer = player.getData(MyAttachments.GLOBAL_STORAGE).getOrCreatePlayerInv(player.getUUID()).getContainer();
 ////            for (int i=0; i<player.getInventory().getContainerSize(); i++) {
 ////                savedContainer.addItem(player.getInventory().getItem(i));
@@ -52,30 +50,23 @@
 //    @SubscribeEvent
 //    public static void onLeftClickBlock(PlayerInteractEvent.LeftClickBlock event) {
 //        if (event.getEntity() instanceof ServerPlayer player) {
-//            ServerLevel level = player.serverLevel();
-//            GlobalStorageData storage = level.getData(MyAttachments.GLOBAL_STORAGE);
-//            PlayerInventoryData inv = storage.getOrCreatePlayerInv(player.getUUID());
-//
-//            inv.setOwnerName(player.getGameProfile().getName());
-//            inv.setPartyName(OpenPACServerAPI.get(player.server).getServerClaimsManager().getPlayerInfo(player.getUUID()).getClaimsName());
-//
-//            for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
-//                inv.getContainer().addItem(player.getInventory().getItem(i));
+//            for (int i=0; i < player.getInventory().getContainerSize()-5; i++) {
+//                System.out.println("DEBUG: "+i+" слот: "+player.getInventory().getItem(i).getHoverName());
 //            }
+//            System.out.println("DEBUG: "+40+" слот(левая рука): "+player.getInventory().getItem(40).getHoverName());
 //
-//            player.getInventory().clearContent();
 //
-////            for (int i=0; i<savedContainer.getContainerSize(); i++) {
-////                player.getInventory().add(savedContainer.getItem(i));
-////            }
-////            var savedData = player.getData(MyAttachments.GLOBAL_STORAGE).getOrCreatePlayerInv(player.getUUID());
-////            savedContainer.clearContent();
-////            System.out.println(savedData.getOwnerName());
-////            for (int i=0; i<savedContainer.getContainerSize(); i++) {
-////                System.out.println();
-////            }
 //
 //        }
-
 //    }
 //}
+//            for (int i=0; i<savedContainer.getContainerSize(); i++) {
+//                player.getInventory().add(savedContainer.getItem(i));
+//            }
+//            var savedData = player.getData(MyAttachments.GLOBAL_STORAGE).getOrCreatePlayerInv(player.getUUID());
+//            savedContainer.clearContent();
+//            System.out.println(savedData.getOwnerName());
+//            for (int i=0; i<savedContainer.getContainerSize(); i++) {
+//                System.out.println();
+//            }
+

@@ -7,7 +7,8 @@ import net.minecraft.resources.ResourceLocation;
 
 public record PartyNameResponsePacket(String partyName) implements CustomPacketPayload {
     public static final Type<PartyNameResponsePacket> TYPE =
-            new Type<>(ResourceLocation.fromNamespaceAndPath("yourmod", "party_name_response"));
+            new Type<>(ResourceLocation.fromNamespaceAndPath("openpacbp", "party_name_response"));
+
     public static final StreamCodec<FriendlyByteBuf, PartyNameResponsePacket> CODEC =
             StreamCodec.of((buf, pkt) -> buf.writeUtf(pkt.partyName),
                     buf -> new PartyNameResponsePacket(buf.readUtf()));

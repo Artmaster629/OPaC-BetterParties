@@ -1,23 +1,34 @@
 package net.artmaster.openpacbp.network;
 
+import net.artmaster.openpacbp.ModMain;
 import net.artmaster.openpacbp.api.quests.GlobalStorageData;
-import net.artmaster.openpacbp.api.quests.MyAttachments;
-import net.artmaster.openpacbp.api.quests.PlayerInventoryData;
-import net.artmaster.openpacbp.api.quests.menu.GlobalStorageMenu;
-import net.artmaster.openpacbp.client.PartyGUIRenderer;
+import net.artmaster.openpacbp.api.quests.PartyInventoryData;
+import net.artmaster.openpacbp.api.quests.PartyStorageManager;
+import net.artmaster.openpacbp.network.party_color.GetPartyColorClientPacket;
+import net.artmaster.openpacbp.network.party_color.PartyColorResponsePacket;
 import net.artmaster.openpacbp.network.party_name.GetPartyNameClientPacket;
 import net.artmaster.openpacbp.network.party_name.PartyNameResponsePacket;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.world.Container;
-import net.minecraft.world.SimpleContainer;
-import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+import static net.artmaster.openpacbp.api.quests.PartyStorageManager.getGlobalStorage;
+import static net.artmaster.openpacbp.network.ClientPacketHandler.handleSyncParties;
+
+
+@Mod("openpacbp")
+@EventBusSubscriber(modid = ModMain.MODID)
 public class Network {
 
     // StreamCodec для OpenGuiPacket
@@ -33,18 +44,6 @@ public class Network {
                     // пусто, пакет не содержит данных
                 }
             };
-    public static final StreamCodec<RegistryFriendlyByteBuf, GetPartyNameClientPacket> CODEC_2 =
-            new StreamCodec<>() {
-                @Override
-                public GetPartyNameClientPacket decode(RegistryFriendlyByteBuf buf) {
-                    return new GetPartyNameClientPacket();
-                }
-
-                @Override
-                public void encode(RegistryFriendlyByteBuf buf, GetPartyNameClientPacket packet) {
-                    // пусто, пакет не содержит данных
-                }
-            };
 
     // StreamCodec для ClientCommandPacket
     public static final StreamCodec<RegistryFriendlyByteBuf, ButtonClickPacket> COMMAND_CODEC =
@@ -53,77 +52,170 @@ public class Network {
                     buf -> new ButtonClickPacket(buf.readUtf())
             );
 
+
+
+
+
+    public static PayloadRegistrar registrarClient;
+    public static PayloadRegistrar registrarServer;
+
     // Регистрация пакетов
-    public static void register(PayloadRegistrar registrar) {
-        // 1. OpenGuiPacket (сервер -> клиент)
-        registrar.playToClient(OpenGuiPacket.TYPE, CODEC, (packet, ctx) ->
-                ctx.enqueueWork(() -> Minecraft.getInstance().setScreen(new PartyGUIRenderer()))
+    @SubscribeEvent
+    public static void register(RegisterPayloadHandlersEvent event) {
+        registrarClient = event.registrar("openpacbp");
+        registrarServer = event.registrar("openpacbp");
+
+
+
+        // -------------------- Клиентские пакеты (сервер -> клиент) --------------------
+        registrarServer.playToClient(
+                OpenGuiPacket.TYPE,
+                OpenGuiPacket.CODEC,
+                (packet, ctx) -> ctx.enqueueWork(ClientPacketHandler::handleOpenGui)
         );
-// 2. RunCommandPacket (сервер -> клиент)
-        registrar.playToClient(RunCommandPacket.TYPE, RunCommandPacket.CODEC, (packet, ctx) ->
-                ctx.enqueueWork(() -> {
-                    LocalPlayer player = Minecraft.getInstance().player;
-                    if (player != null) {
-                        player.connection.sendCommand(packet.command());
-                    }
+
+        registrarServer.playToClient(
+                SyncPartiesPacket.TYPE,
+                SyncPartiesPacket.CODEC,
+                (packet, ctx) -> ctx.enqueueWork(() -> ClientPacketHandler.handleSyncParties(packet))
+        );
+
+        registrarServer.playToClient(
+                RunCommandPacket.TYPE,
+                RunCommandPacket.CODEC,
+                (packet, ctx) -> ctx.enqueueWork(() -> ClientPacketHandler.handleRunCommand(packet))
+        );
+
+        registrarServer.playToClient(
+                PartyNameResponsePacket.TYPE,
+                PartyNameResponsePacket.CODEC,
+                (packet, ctx) -> ctx.enqueueWork(() -> ClientPacketHandler.handlePartyName(packet))
+        );
+
+        registrarServer.playToClient(
+                PartyColorResponsePacket.TYPE,
+                PartyColorResponsePacket.CODEC,
+                (packet, ctx) -> ctx.enqueueWork(() -> ClientPacketHandler.handlePartyColor(packet))
+        );
+
+
+        // -------------------- Серверные пакеты (клиент -> сервер) --------------------
+        registrarClient.playToServer(
+                ButtonClickPacket.TYPE,
+                ButtonClickPacket.CODEC,
+                (packet, ctx) -> ctx.enqueueWork(() -> {
+                    ServerPlayer player = (ServerPlayer) ctx.player();
+                    sendCommand(player, packet.command());
                 })
         );
 
-// 3. ButtonClickPacket (клиент -> сервер)
-        registrar.playToServer(ButtonClickPacket.TYPE, ButtonClickPacket.CODEC, (packet, ctx) ->
-                ctx.enqueueWork(() -> {
+        registrarClient.playToServer(
+                GetPartyNameClientPacket.TYPE,
+                GetPartyNameClientPacket.CODEC,
+                (packet, ctx) -> ctx.enqueueWork(() -> {
                     ServerPlayer player = (ServerPlayer) ctx.player();
-                    if (player != null) {
-                        Container storageContainer = new SimpleContainer(9);
-                        player.openMenu(new SimpleMenuProvider(
-                                (id, inv, buf) -> new GlobalStorageMenu(id, inv, storageContainer),
-                                Component.literal("Глобальное хранилище")
-                        ));
-                    }
-                })
-        );
-        registrar.playToServer(GetPartyNameClientPacket.TYPE, CODEC_2,
-                (packet, ctx) -> {
-                    ServerPlayer player = (ServerPlayer) ctx.player();
-                    GlobalStorageData storage = player.serverLevel().getData(MyAttachments.GLOBAL_STORAGE);
-                    PlayerInventoryData inv = storage.getOrCreatePlayerInv(player.getUUID());
-                    String partyName = inv.getPartyName();
-
-                    // Отправляем обратно клиенту
+                    var inv = getGlobalStorage(player.server, player.getUUID());
+                    var partyName = inv.getAll().values().stream().toList().get(packet.partyIndex()).getPartyName();
                     ctx.reply(new PartyNameResponsePacket(partyName));
-                });
-
-        registrar.playToClient(PartyNameResponsePacket.TYPE, PartyNameResponsePacket.CODEC,
-                (packet, ctx) -> {
-                    ctx.enqueueWork(() -> {
-                        Network.setPartyName(packet.partyName());
-                    });
-                });
-
-
-        registrar.playToServer(QuestButtonClickPacket.TYPE, QuestButtonClickPacket.CODEC, (packet, ctx) ->
-                ctx.enqueueWork(() -> {
-                    ServerPlayer player = (ServerPlayer) ctx.player();
-                    if (player != null) {
-                        player.server.getCommands().performPrefixedCommand(
-                                player.createCommandSourceStack(),
-                                packet.command()
-                        );
-                        sendCommand(player, packet.command()); // если нужно ещё и обратно на клиент
-                    }
                 })
         );
 
-//        registrar.playToServer(RequestDataPacket.TYPE, RequestDataPacket.CODEC, (packet, ctx) ->
-//                ctx.enqueueWork(() -> {
-//                    ServerPlayer player = (ServerPlayer) ctx.player();
-//                    if (player != null) {
-//                        IClientPartyAPI partyAPI = ((IClientPartyAPI) OpenPACServerAPI.get(player.server).getPartyManager().getPartyById(packet.uuid()));
-//                        sendParty(partyAPI, player);
-//                    }
-//                })
-//        );
+        registrarClient.playToServer(
+                GetPartyColorClientPacket.TYPE,
+                GetPartyColorClientPacket.CODEC,
+                (packet, ctx) -> ctx.enqueueWork(() -> {
+                    ServerPlayer player = (ServerPlayer) ctx.player();
+                    var inv = getGlobalStorage(player.server, player.getUUID());
+                    var partyColor = inv.getAll().values().stream().toList().get(packet.partyIndex()).getPartyColor();
+                    ctx.reply(new PartyColorResponsePacket(partyColor));
+                })
+        );
+
+        registrarClient.playToServer(
+                RequestAllPartiesPacket.TYPE,
+                RequestAllPartiesPacket.CODEC,
+                (reqPacket, ctx) -> ctx.enqueueWork(() -> {
+                    ServerPlayer player = (ServerPlayer) ctx.player();
+                    if (player == null) return;
+
+                    // Формируем пакет
+                    List<SyncPartiesPacket.PartyData> packetData = new ArrayList<>();
+                    // Здесь нужно **заполнить packetData из storage**, иначе клиент получит пустой список
+                    GlobalStorageData storage = PartyStorageManager.getGlobalStorage(player.server, player.getUUID());
+                    if (storage != null) {
+                        var provider = player.server.registryAccess();
+                        for (var entry : storage.getAll().entrySet()) {
+                            UUID partyId = entry.getKey();
+                            PartyInventoryData inv = entry.getValue();
+                            List<ItemStack> items = new ArrayList<>();
+                            for (int i = 0; i < inv.getContainer().getContainerSize(); i++) {
+                                items.add(inv.getContainer().getItem(i).copy());
+                            }
+                            packetData.add(new SyncPartiesPacket.PartyData(
+                                    partyId,
+                                    inv.getPartyName(),
+                                    inv.getPartyColor(),
+                                    items,
+                                    provider
+                            ));
+                        }
+                    }
+
+                    SyncPartiesPacket syncPacket = new SyncPartiesPacket(packetData);
+
+                    // Отправляем клиенту
+                    ctx.reply(syncPacket);
+                })
+        );
+
+
+
+
+
+
+//        registrar.playToServer(QuestButtonClickPacket.TYPE, QuestButtonClickPacket.CODEC, (packet, ctx) -> {
+//            ctx.enqueueWork(() -> {
+//                ServerPlayer player = (ServerPlayer) ctx.player();
+//                if (player != null) {
+//                    player.server.getCommands().performPrefixedCommand(
+//                            player.createCommandSourceStack(),
+//                            packet.command()
+//                    );
+//                    sendCommand(player, packet.command());
+//                }
+//            });
+//        });
     }
+
+    public static void sendAllParties(ServerPlayer player) {
+        GlobalStorageData storage = PartyStorageManager.getGlobalStorage(player.server, player.getUUID());
+        if (storage == null) return;
+
+        List<SyncPartiesPacket.PartyData> packetData = new ArrayList<>();
+        var provider = player.server.registryAccess();
+
+        for (var entry : storage.getAll().entrySet()) {
+            UUID partyId = entry.getKey();
+            PartyInventoryData inv = entry.getValue();
+            List<ItemStack> items = new ArrayList<>();
+            for (int i = 0; i < inv.getContainer().getContainerSize(); i++) {
+                items.add(inv.getContainer().getItem(i).copy());
+            }
+            packetData.add(new SyncPartiesPacket.PartyData(
+                    partyId,
+                    inv.getPartyName(),
+                    inv.getPartyColor(),
+                    items,
+                    provider
+            ));
+        }
+
+        // Отправка клиенту
+        SyncPartiesPacket packet = new SyncPartiesPacket(packetData);
+        player.connection.send(packet); // <--- не регистрируем, а **отправляем**
+    }
+
+
 
     // Отправка GUI (сервер -> клиент)
     public static void sendOpenGui(ServerPlayer player) {
@@ -132,7 +224,11 @@ public class Network {
 
     // Отправка команды (сервер -> клиент)
     public static void sendCommand(ServerPlayer player, String command) {
-        player.connection.send(new RunCommandPacket(command));
+        //player.connection.send(new RunCommandPacket(command));
+        player.server.getCommands().performPrefixedCommand(
+                player.createCommandSourceStack(),
+                command
+        );
     }
     // Отправка пати (сервер -> клиент)
 //    public static void sendParty(IClientPartyAPI partyAPI, ServerPlayer player) {
@@ -146,10 +242,11 @@ public class Network {
     }
 
     private static String cachedPartyName = "";
+    private static int cachedPartyColor = 0xFFFFFF;
 
     // Вызывается при старте GUI, чтобы запросить имя
-    public static void requestPartyName() {
-        Minecraft.getInstance().getConnection().send(new GetPartyNameClientPacket());
+    public static void requestPartyName(int partyIndex) {
+        Minecraft.getInstance().getConnection().send(new GetPartyNameClientPacket(partyIndex));
     }
 
     // Вызывается на клиенте, когда пришёл ответ
@@ -160,6 +257,21 @@ public class Network {
     // Просто возвращает последнюю известную строку
     public static String getPartyName() {
         return cachedPartyName;
+    }
+
+
+    public static void requestPartyColor(int partyIndex) {
+        Minecraft.getInstance().getConnection().send(new GetPartyColorClientPacket(partyIndex));
+    }
+
+    // Вызывается на клиенте, когда пришёл ответ
+    public static void setPartyColor(int color) {
+        cachedPartyColor = color;
+    }
+
+    // Просто возвращает последнюю известную строку
+    public static int getPartyColor() {
+        return cachedPartyColor;
     }
 
     // Отправка пати (клиент -> сервер)

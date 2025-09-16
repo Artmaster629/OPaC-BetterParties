@@ -1,9 +1,7 @@
 package net.artmaster.openpacbp.client;
 
-import com.mojang.blaze3d.vertex.PoseStack;
 import net.artmaster.openpacbp.ModMain;
-import net.artmaster.openpacbp.api.quests.menu.GlobalStorageMenu;
-import net.artmaster.openpacbp.network.Network;
+import net.artmaster.openpacbp.gui.PartyTradesMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -14,11 +12,11 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 @OnlyIn(Dist.CLIENT)
-public class GlobalStorageScreen extends AbstractContainerScreen<GlobalStorageMenu> {
+public class PartyTradesScreen extends AbstractContainerScreen<PartyTradesMenu> {
     private static final ResourceLocation TEXTURE =
             ResourceLocation.fromNamespaceAndPath(ModMain.MODID, "textures/gui/quest_menu.png");
 
-    public GlobalStorageScreen(GlobalStorageMenu menu, Inventory playerInv, Component title) {
+    public PartyTradesScreen(PartyTradesMenu menu, Inventory playerInv, Component title) {
         super(menu, playerInv, title);
         this.imageWidth = 176; // ширина текстуры
         this.imageHeight = 200; // высота текстуры
@@ -29,7 +27,7 @@ public class GlobalStorageScreen extends AbstractContainerScreen<GlobalStorageMe
     @Override
     protected void init() {
         super.init();
-        Network.requestPartyName();
+        //Network.requestPartyName();
         int x = leftPos + 8;
         int y = topPos + 20;
 
@@ -50,7 +48,7 @@ public class GlobalStorageScreen extends AbstractContainerScreen<GlobalStorageMe
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTicks, int mouseX, int mouseY) {
         graphics.blit(TEXTURE, leftPos, topPos, 0, 0, imageWidth, imageHeight, imageWidth, imageHeight);
-        graphics.drawString(this.font, Network.getPartyName(), leftPos+9, topPos+42, 0xFFFFFF);
+        //graphics.drawString(this.font, Network.getPartyName(), leftPos+9, topPos+42, 0xFFFFFF);
     }
 
 

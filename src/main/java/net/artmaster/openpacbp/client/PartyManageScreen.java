@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Objects;
 
 
-public class PartyGUIRenderer extends Screen {
+public class PartyManageScreen extends Screen {
 
 
     Minecraft mc = Minecraft.getInstance();
@@ -50,22 +50,22 @@ public class PartyGUIRenderer extends Screen {
     List<IPartyAllyAPI> allies_list = Objects.requireNonNull(partyManager.getParty()).getAllyPartiesStream().toList();
     List<IPartyPlayerInfoAPI> invites_list = Objects.requireNonNull(partyManager.getParty()).getInvitedPlayersStream().toList();
 
-    protected void getPartyMembers() {
+    protected void getPartyMembers() { //вот тут что-то не так
         if (members_list.size() == 1) {
             members.add(partyManager.getParty().getOwner().getUsername()+"["+partyManager.getParty().getOwner().getRank()+"]");
         } else {
-            for (int i=0; i<=members_list.size(); i++) {
+            for (int i=0; i < members_list.size(); i++) {
                 members.add(members_list.get(i).getUsername()+"["+members_list.get(i).getRank()+"]");
             }
         }
     }
     protected void getPartyAllies() {
-        for (int i=0; i<=allies_list.size(); i++) {
+        for (int i=0; i< allies_list.size(); i++) {
             allies.add(allies_list.get(i).getPartyId());
         }
     }
     protected void getPartyInvites() {
-        for (int i=0; i<=invites_list.size(); i++) {
+        for (int i=0; i< invites_list.size(); i++) {
             invites.add(invites_list.get(i).getUsername());
         }
     }
@@ -84,7 +84,7 @@ public class PartyGUIRenderer extends Screen {
     private EditBox textBox;
     private EditBox colorBox;
     private EditBox managePlayerBox;
-    public PartyGUIRenderer() {
+    public PartyManageScreen() {
         super(Component.literal("Управление гильдией"));
     }
 
@@ -258,7 +258,7 @@ public class PartyGUIRenderer extends Screen {
                         ).bounds(
                                 this.managePlayerBox.getX()+130,
                                 this.managePlayerBox.getY()+80,
-                                20,
+                                50,
                                 20)
                         .build()
         );
@@ -434,11 +434,11 @@ public class PartyGUIRenderer extends Screen {
                 if (!this.textBox.getValue().isEmpty()) {
                     Network.sendButtonClick("openpac player-config set parties.name "+text);
                     Network.sendButtonClick("openpac player-config set claims.name "+text);
-                    player.closeContainer();
+                    //player.closeContainer();
                 }
                 if (!this.colorBox.getValue().isEmpty()) {
                     Network.sendButtonClick("openpac player-config set claims.color "+color);
-                    player.closeContainer();
+                    //player.closeContainer();
                 }
                 if (!this.textBox.getValue().isEmpty() || !this.colorBox.getValue().isEmpty()) {
                     this.minecraft.player.sendSystemMessage(Component.literal("Изменения применены!"));
@@ -534,6 +534,6 @@ public class PartyGUIRenderer extends Screen {
 //        );
 //
 //        guiGraphics.pose().popPose();
-//// переносим "камеру" туда, где хотим миникарту
+//// переносим "камеру"
 ////        guiGraphics.pose().translate(50, 50, 0); // x=50, y=50
 ////        guiGraphics.pose().scale(0.5f, 0.5f, 1.0f); // уменьшаем карту в 2 раза

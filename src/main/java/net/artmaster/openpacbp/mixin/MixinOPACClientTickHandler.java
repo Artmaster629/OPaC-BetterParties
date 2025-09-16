@@ -1,6 +1,6 @@
 package net.artmaster.openpacbp.mixin;
 
-import net.artmaster.openpacbp.client.PartyGUIRenderer;
+import net.artmaster.openpacbp.client.PartyManageScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
@@ -35,7 +35,7 @@ public class MixinOPACClientTickHandler {
             ci.cancel();
             return;
         }
-        mc.setScreen(new PartyGUIRenderer());
+        mc.setScreen(new PartyManageScreen());
         ci.cancel(); // отменить открытие оригинального меню OPaC
     }
 
