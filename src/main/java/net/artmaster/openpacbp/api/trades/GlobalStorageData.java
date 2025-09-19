@@ -1,12 +1,10 @@
-package net.artmaster.openpacbp.api.quests;
+package net.artmaster.openpacbp.api.trades;
 
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class GlobalStorageData {
     private final Map<UUID, PartyInventoryData> partyInventories = new HashMap<>();
@@ -18,6 +16,15 @@ public class GlobalStorageData {
     public Map<UUID, PartyInventoryData> getAll() {
         return partyInventories;
     }
+
+    public List<PartyInventoryData> getAllPartyInventories() {
+        return new ArrayList<>(partyInventories.values());
+    }
+
+    public void removeParty(UUID partyId) {
+        partyInventories.remove(partyId);
+    }
+
 
     public CompoundTag save(HolderLookup.Provider provider) {
         CompoundTag tag = new CompoundTag();
