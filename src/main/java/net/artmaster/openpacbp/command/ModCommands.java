@@ -1,9 +1,10 @@
 package net.artmaster.openpacbp.command;
 
 import net.artmaster.openpacbp.ModMain;
-import net.artmaster.openpacbp.api.quests.GlobalStorageData;
-import net.artmaster.openpacbp.api.quests.PartyInventoryData;
-import net.artmaster.openpacbp.api.quests.PartyStorageManager;
+import net.artmaster.openpacbp.api.trades.GlobalStorageData;
+import net.artmaster.openpacbp.api.trades.MyAttachments;
+import net.artmaster.openpacbp.api.trades.PartyInventoryData;
+import net.artmaster.openpacbp.api.trades.StorageManager;
 import net.artmaster.openpacbp.gui.GlobalTradesMenu;
 import net.artmaster.openpacbp.gui.PartyTradesMenu;
 import net.artmaster.openpacbp.network.Network;
@@ -11,6 +12,8 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleMenuProvider;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
@@ -30,67 +33,81 @@ public class ModCommands {
     @SubscribeEvent
     public static void registerCommands(RegisterCommandsEvent event) {
         event.getDispatcher().register(
-                Commands.literal("openpac-quests")
-                        .executes(ctx -> {
-                            CommandSourceStack source = ctx.getSource();
-                            if (source.getEntity() instanceof net.minecraft.server.level.ServerPlayer player) {
-                                if (player != null) {
-                                    PartyInventoryData storage = PartyStorageManager.getPartyInventory(player.server, player.getUUID());
-                                    if (storage != null) {
-                                        player.openMenu(new SimpleMenuProvider(
-                                                (id, inv, ply) -> new PartyTradesMenu(id, inv, storage.getContainer()),
-                                                Component.literal("Хранилище гильдии")
-                                        ));
+                Commands.literal("openpacbp")
+                        //// *** /openpacbp market ***
+                        .then(Commands.literal("market")
+                                .then(Commands.literal("global")
+                                        .executes(ctx -> {
+                                            CommandSourceStack source = ctx.getSource();
+                                            if (source.getEntity() instanceof ServerPlayer player) {
+                                                GlobalStorageData storage = StorageManager.getGlobalStorage(player.server, player.getUUID());
+                                                if (storage != null) {
+                                                    List<PartyInventoryData> all = new ArrayList<>(storage.getAll().values());
+                                                    if (!all.isEmpty()) {
+                                                        Network.sendAllParties(player);
+                                                        player.openMenu(new SimpleMenuProvider(
+                                                                (id, inv, ply) -> {
+                                                                    ServerLevel level = player.server.overworld();
+                                                                    GlobalStorageData global_storage = level.getData(MyAttachments.GLOBAL_STORAGE);
+                                                                    List<PartyInventoryData> allParties = new ArrayList<>(global_storage.getAll().values());
+                                                                    return new GlobalTradesMenu(id, inv, allParties);
+                                                                },
+                                                                Component.literal("Рынок")
+                                                        ));
+                                                    } else {
+                                                        player.sendSystemMessage(Component.translatable("text.openpacbp.no_party_in_market_pm"));
+                                                    }
+                                                }
+                                            }
+                                            return 1;
+                                        })
+                                )
+                                //// *** /openpacbp market settings ***
+                                .then(Commands.literal("settings")
+                                        .executes(ctx -> {
+                                            CommandSourceStack source = ctx.getSource();
+                                            if (source.getEntity() instanceof ServerPlayer player) {
+                                                PartyInventoryData storage = StorageManager.getPartyInventory(player.server, player.getUUID());
+                                                MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+                                                if (server == null) return 0;
+
+                                                IPartyManagerAPI partyManager = OpenPACServerAPI.get(server).getPartyManager();
+                                                IServerPartyAPI party = partyManager.getPartyByMember(player.getUUID());
+                                                if (party == null) {
+                                                    player.displayClientMessage(Component.translatable("text.openpacbp.no_party_pm"), false);
+                                                    return 0;
+                                                }
+                                                if (storage != null) {
+                                                    player.openMenu(new SimpleMenuProvider(
+                                                            (id, inv, ply) -> new PartyTradesMenu(id, inv, storage.getContainer()),
+                                                            Component.literal("Хранилище гильдии")
+                                                    ));
+                                                }
+                                            }
+                                            return 1;
+                                        })
+                                )
+                        )
+                        //// *** /openpacbp manage ***
+                        .then(Commands.literal("manage")
+                                .executes(ctx -> {
+                                    CommandSourceStack source = ctx.getSource();
+                                    if (source.getEntity() instanceof ServerPlayer player) {
+                                        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+                                        if (server == null) return 0;
+
+                                        IPartyManagerAPI partyManager = OpenPACServerAPI.get(server).getPartyManager();
+                                        IServerPartyAPI party = partyManager.getPartyByMember(player.getUUID());
+                                        if (party == null) {
+                                            player.displayClientMessage(Component.translatable("text.openpacbp.no_party_pm"), false);
+                                            return 0;
+                                        }
+                                        Network.sendOpenGui(player);
                                     }
-                                }
-                            }
-                            return 1;
-                        })
+                                    return 1;
+                                })
+                        )
         );
-        event.getDispatcher().register(
-                Commands.literal("openpac-trades")
-                        .executes(ctx -> {
-                            CommandSourceStack source = ctx.getSource();
-                            if (source.getEntity() instanceof net.minecraft.server.level.ServerPlayer player) {
-                                GlobalStorageData storage = PartyStorageManager.getGlobalStorage(player.server, player.getUUID());
-                                if (storage != null) {
-                                    List<PartyInventoryData> all = new ArrayList<>(storage.getAll().values());
-                                    System.out.println("DEBUG: partyData.size() = " + all.size());
-                                    if (!all.isEmpty()) {
-                                        Network.sendAllParties(player);
-                                        player.openMenu(new SimpleMenuProvider(
-                                                (id, inv, ply) -> new GlobalTradesMenu(id, inv, new ArrayList<>()), // пустой список пока
-                                                Component.literal("Все пати")
-                                        ));
-
-                                    } else {
-                                        player.sendSystemMessage(Component.literal("Нет пати для отображения!"));
-                                    }
-                                }
-                            }
-                            return 1;
-                        })
-        );
-        event.getDispatcher().register(
-                Commands.literal("openpac-partymanage")
-                        .executes(ctx -> {
-                            CommandSourceStack source = ctx.getSource();
-                            if (source.getEntity() instanceof net.minecraft.server.level.ServerPlayer player) {
-                                MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
-                                if (server == null) return 0;
-
-                                IPartyManagerAPI partyManager = OpenPACServerAPI.get(server).getPartyManager();
-                                IServerPartyAPI party = partyManager.getPartyByMember(player.getUUID());
-                                if (party == null) {
-                                    player.displayClientMessage(Component.translatable("text.openpacbp.no_party_pm"), false);
-                                    return 0;
-                                }
-                                Network.sendOpenGui(player);
-                            }
-                            return 1;
-                        })
-        );
-
     }
 }
 
