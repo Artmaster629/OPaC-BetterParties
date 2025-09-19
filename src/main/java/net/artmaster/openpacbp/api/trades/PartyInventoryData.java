@@ -1,4 +1,4 @@
-package net.artmaster.openpacbp.api.quests;
+package net.artmaster.openpacbp.api.trades;
 
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -24,13 +24,14 @@ public class PartyInventoryData {
         this.partyName = name;
     }
 
-
     public int getPartyColor() {
         return partyColor;
     }
     public void setPartyColor(int color) {
         this.partyColor = color;
     }
+
+
 
     public CompoundTag save(HolderLookup.Provider registries) {
         CompoundTag tag = new CompoundTag();
