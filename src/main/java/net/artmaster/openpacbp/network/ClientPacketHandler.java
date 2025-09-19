@@ -2,8 +2,9 @@ package net.artmaster.openpacbp.network;
 
 import net.artmaster.openpacbp.client.GlobalTradesScreen;
 import net.artmaster.openpacbp.client.PartyManageScreen;
-import net.artmaster.openpacbp.network.party_color.PartyColorResponsePacket;
-import net.artmaster.openpacbp.network.party_name.PartyNameResponsePacket;
+import net.artmaster.openpacbp.network.parties.SyncPartiesPacket;
+import net.artmaster.openpacbp.network.parties.party_color.PartyColorResponsePacket;
+import net.artmaster.openpacbp.network.parties.party_name.PartyNameResponsePacket;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.neoforged.api.distmarker.Dist;
