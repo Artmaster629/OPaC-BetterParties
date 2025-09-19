@@ -3,11 +3,12 @@
   "minVersion": "0.8",
   "package": "net.artmaster.openpacbp.mixin",
   "compatibilityLevel": "JAVA_17",
-  "refmap": "mixins.yourmod.refmap.json",
+  "refmap": "mixins.openpacbp.refmap.json",
   "mixins": [
-    "ClaimCreationDenyMixin",
-    "ClaimCreationPartyOwnerMixin",
+    "ClaimChangeOwnerMixin",
+    "ClaimDenyMixin",
     "ConfigSetCommandMixin",
-    "MixinOPACClientTickHandler"
+    "MixinOPACClientTickHandler",
+    "RemovePartyMixin"
   ]
 }
