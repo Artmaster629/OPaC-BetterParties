@@ -1,4 +1,4 @@
-package net.artmaster.openpacbp.api.quests;
+package net.artmaster.openpacbp.api.trades;
 
 import net.artmaster.openpacbp.ModMain;
 import net.minecraft.core.HolderLookup;
