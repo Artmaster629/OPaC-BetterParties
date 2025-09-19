@@ -2,6 +2,7 @@ package net.artmaster.openpacbp.client;
 
 import net.artmaster.openpacbp.ModMain;
 import net.artmaster.openpacbp.gui.PartyTradesMenu;
+import net.artmaster.openpacbp.network.Network;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -14,7 +15,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 @OnlyIn(Dist.CLIENT)
 public class PartyTradesScreen extends AbstractContainerScreen<PartyTradesMenu> {
     private static final ResourceLocation TEXTURE =
-            ResourceLocation.fromNamespaceAndPath(ModMain.MODID, "textures/gui/quest_menu.png");
+            ResourceLocation.fromNamespaceAndPath(ModMain.MODID, "textures/gui/party_storage_menu.png");
 
     public PartyTradesScreen(PartyTradesMenu menu, Inventory playerInv, Component title) {
         super(menu, playerInv, title);
@@ -32,11 +33,11 @@ public class PartyTradesScreen extends AbstractContainerScreen<PartyTradesMenu> 
         int y = topPos + 20;
 
         this.addRenderableWidget(Button.builder(
-                Component.literal("Save"),
+                Component.literal("Рынок"),
                 (btn) -> {
-                    System.out.println("Pressed");
+                    Network.sendButtonClick("openpacbp market global");
                 }
-        ).bounds(x, y, 88, 20).build());
+        ).bounds(x, y, 70, 20).build());
     }
 
     @Override
