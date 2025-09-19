@@ -10,10 +10,10 @@ public class SafeItemStackCodec {
 
     private static void encode(RegistryFriendlyByteBuf buf, ItemStack stack) {
         if (stack.isEmpty()) {
-            buf.writeBoolean(false); // признак пустого
+            buf.writeBoolean(false);
         } else {
             buf.writeBoolean(true);
-            ItemStack.STREAM_CODEC.encode(buf, stack); // vanilla encode
+            ItemStack.STREAM_CODEC.encode(buf, stack);
         }
     }
 
