@@ -1,6 +1,6 @@
 package net.artmaster.openpacbp.gui;
 
-import net.artmaster.openpacbp.api.quests.PartyInventoryData;
+import net.artmaster.openpacbp.api.trades.PartyInventoryData;
 import net.artmaster.openpacbp.init.ModMenus;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
@@ -12,12 +12,11 @@ import net.minecraft.world.Container;
 import org.jetbrains.annotations.NotNull;
 import xaero.pac.common.server.api.OpenPACServerAPI;
 
-import static net.artmaster.openpacbp.api.quests.PartyStorageManager.getPartyInventory;
+import static net.artmaster.openpacbp.api.trades.StorageManager.getPartyInventory;
 
 
 public class PartyTradesMenu extends AbstractContainerMenu {
     private final Container container;
-    String partyInfo = "";
 
     public PartyTradesMenu(int windowId, Inventory playerInventory, Container container) {
         super(ModMenus.PARTY_STORAGE_TRADES.get(), windowId);
@@ -25,7 +24,7 @@ public class PartyTradesMenu extends AbstractContainerMenu {
 
         assert playerInventory.player.getServer() != null;
 
-
+        //Слоты торговли
         this.addSlot(new Slot(container, 0, 80 + 2 * 18, -1 + 1 * 21));
         this.addSlot(new Slot(container, 1, 80 + 4 * 18, -1 + 1 * 21));
         this.addSlot(new Slot(container, 2, 80 + 2 * 18, -1 + 2 * 21));
@@ -34,15 +33,16 @@ public class PartyTradesMenu extends AbstractContainerMenu {
         this.addSlot(new Slot(container, 5, 80 + 4 * 18, -1 + 3 * 21));
         this.addSlot(new Slot(container, 6, 80 + 2 * 18, -1 + 4 * 21));
         this.addSlot(new Slot(container, 7, 80 + 4 * 18, -1 + 4 * 21));
-        this.addSlot(new Slot(container, 8, 80 + 5 * 18, -1 + 4 * 21));
 
-
-                // Слоты контейнера (3x3)
-//        for (int i = 0; i < 3; i++) {
-//            for (int j = 0; j < 3; j++) {
-//                this.addSlot(new Slot(container, j + i * 3, 62 + j * 18, 17 + i * 18)).set(inv.getContainer().getItem(j + i *3));
-//            }
-//        }
+        //Полученное на торговле
+        this.addSlot(new Slot(container, 10, 8, 65));
+        this.addSlot(new Slot(container, 11, 26, 65));
+        this.addSlot(new Slot(container, 12, 44, 65));
+        this.addSlot(new Slot(container, 13, 62, 65));
+        this.addSlot(new Slot(container, 14, 8, 83));
+        this.addSlot(new Slot(container, 15, 26, 83));
+        this.addSlot(new Slot(container, 16, 44, 83));
+        this.addSlot(new Slot(container, 17, 62, 83));
 
 
 
@@ -61,7 +61,7 @@ public class PartyTradesMenu extends AbstractContainerMenu {
     }
 
     public static PartyTradesMenu create(int windowId, Inventory inv) {
-        return new PartyTradesMenu(windowId, inv, new SimpleContainer(9));
+        return new PartyTradesMenu(windowId, inv, new SimpleContainer(18));
     }
 
 
