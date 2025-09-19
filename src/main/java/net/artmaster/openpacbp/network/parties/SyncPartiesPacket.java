@@ -1,6 +1,6 @@
-package net.artmaster.openpacbp.network;
+package net.artmaster.openpacbp.network.parties;
 
-import net.artmaster.openpacbp.api.quests.PartyInventoryData;
+import net.artmaster.openpacbp.api.trades.PartyInventoryData;
 import net.artmaster.openpacbp.utils.SafeItemStackCodec;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.HolderLookup;
@@ -21,9 +21,7 @@ public record SyncPartiesPacket(List<PartyData> parties) implements CustomPacket
 
     public static final Type<SyncPartiesPacket> TYPE = new Type<>(TYPE_ID);
 
-
-
-
+    public static final int TRADE_SLOTS = 8;
 
     public static final StreamCodec<RegistryFriendlyByteBuf, SyncPartiesPacket> CODEC =
             StreamCodec.of(
@@ -34,10 +32,10 @@ public record SyncPartiesPacket(List<PartyData> parties) implements CustomPacket
                             buf.writeUUID(p.partyId());
                             buf.writeUtf(p.partyName());
                             buf.writeInt(p.color());
-                            buf.writeInt(p.items().size());
 
-                            // Получаем provider сервера
-                            for (ItemStack stack : p.items()) {
+                            buf.writeInt(TRADE_SLOTS);
+                            for (int i = 0; i < TRADE_SLOTS; i++) {
+                                ItemStack stack = i < p.items().size() ? p.items().get(i) : ItemStack.EMPTY;
                                 SafeItemStackCodec.CODEC.encode(buf, stack);
                             }
                         }
@@ -56,7 +54,8 @@ public record SyncPartiesPacket(List<PartyData> parties) implements CustomPacket
                             List<ItemStack> items = new ArrayList<>();
 
                             for (int j = 0; j < itemCount; j++) {
-                                items.add(SafeItemStackCodec.CODEC.decode(buf));
+                                ItemStack s = SafeItemStackCodec.CODEC.decode(buf);
+                                items.add(s);
                             }
 
                             list.add(new PartyData(id, name, color, items, provider));
@@ -71,11 +70,11 @@ public record SyncPartiesPacket(List<PartyData> parties) implements CustomPacket
         return TYPE;
     }
 
-    /** Данные одной пати */
+    //Данные одной пати
     public record PartyData(UUID partyId, String partyName, int color, List<ItemStack> items, HolderLookup.Provider provider) {
         public PartyInventoryData toPartyInventoryData() {
-            PartyInventoryData inv = new PartyInventoryData(items.size()); // создаём контейнер нужного размера
-            for (int i = 0; i < items.size(); i++) {
+            PartyInventoryData inv = new PartyInventoryData(SyncPartiesPacket.TRADE_SLOTS);
+            for (int i = 0; i < Math.min(SyncPartiesPacket.TRADE_SLOTS, items.size()); i++) {
                 inv.getContainer().setItem(i, items.get(i).copy());
             }
             inv.setPartyName(partyName());
