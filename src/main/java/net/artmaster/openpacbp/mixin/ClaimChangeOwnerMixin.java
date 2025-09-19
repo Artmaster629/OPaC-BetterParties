@@ -8,7 +8,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import xaero.pac.common.claims.ClaimsManager;
 import xaero.pac.common.claims.DimensionClaimsManager;
@@ -19,63 +18,11 @@ import xaero.pac.common.server.parties.party.api.IPartyManagerAPI;
 import xaero.pac.common.server.parties.party.api.IServerPartyAPI;
 import xaero.pac.common.server.player.config.IPlayerConfigManager;
 
-import java.util.Map;
 import java.util.UUID;
 
 
-//@Mixin(ClaimsManager.class) // заменишь на настоящий класс
-//public abstract class ClaimCreationDenyMixin {
-//
-//    @Inject(method = "claim", at = @At("RETURN"), cancellable = true)
-//    private void onClaim(ResourceLocation dimension, UUID id, int subConfigIndex, int x, int z, boolean forceload, CallbackInfoReturnable<PlayerChunkClaim> cir) {
-//
-//        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
-//        if (server == null) return;
-//
-//        ServerPlayer player = server.getPlayerList().getPlayer(id);
-//        //Если метод вызвался не игроком:
-//        if (player == null) return;
-//
-//        // Получаем PartyManager
-//        IPartyManagerAPI partyManager = OpenPACServerAPI.get(server).getPartyManager();
-//        IServerPartyAPI party = partyManager.getPartyByMember(id);
-//        //Проверка на null
-//        if (party != null) {
-//            // Переназначаем приват на владельца пати
-//            UUID leaderId = party.getOwner().getUUID();
-//            // Здесь можно заменить playerId у claim
-//            PlayerChunkClaim originalClaim = cir.getReturnValue();
-//            PlayerChunkClaim newClaim = new PlayerChunkClaim(leaderId, subConfigIndex, forceload, originalClaim.getSyncIndex());
-//            cir.setReturnValue(newClaim);
-//        }
-//    }
-//}
-//@Mixin(ClaimsManager.class)
-//public abstract class ClaimCreationDenyMixin {
-//
-//    @Redirect(
-//            method = "claim",
-//            at = @At(
-//                    value = "INVOKE",
-//                    target = "Lxaero/pac/common/claims/ClaimsManager;getClaimState(Ljava/util/UUID;IZ)Lxaero/pac/common/claims/player/PlayerChunkClaim;"
-//            )
-//    )
-//    private PlayerChunkClaim redirectGetClaimState(ClaimsManager instance, UUID originalId, int subConfigIndex, boolean forceload) {
-//        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
-//        if (server != null) {
-//            IPartyManagerAPI partyManager = OpenPACServerAPI.get(server).getPartyManager();
-//            IServerPartyAPI party = partyManager.getPartyByMember(originalId);
-//            if (party != null) {
-//                UUID leaderId = party.getOwner().getUUID();
-//
-//                return instance.getClaimState(leaderId, subConfigIndex, forceload);
-//            }
-//        }
-//        return instance.getClaimState(originalId, subConfigIndex, forceload);
-//    }
-//}
 @Mixin(value = ClaimsManager.class, remap = false)
-public abstract class ClaimCreationDenyMixin {
+public abstract class ClaimChangeOwnerMixin {
 
     @Shadow protected IPlayerConfigManager configManager;
 
