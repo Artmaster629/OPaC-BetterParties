@@ -117,6 +117,7 @@ public class GlobalTradesScreen extends AbstractContainerScreen<GlobalTradesMenu
             partyColor = 0xAAAAAA;
         }
 
+
         Component colorizedPartyName = Component.literal(partyName)
                 .withStyle(style -> style.withColor(TextColor.fromRgb(partyColor)));
 
