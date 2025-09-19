@@ -1,4 +1,4 @@
-package net.artmaster.openpacbp.network.party_name;
+package net.artmaster.openpacbp.network.parties.party_name;
 
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;

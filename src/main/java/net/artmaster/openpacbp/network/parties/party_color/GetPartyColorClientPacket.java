@@ -1,4 +1,4 @@
-package net.artmaster.openpacbp.network.party_color;
+package net.artmaster.openpacbp.network.parties.party_color;
 
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
