@@ -36,7 +36,7 @@ public class MixinOPACClientTickHandler {
             return;
         }
         mc.setScreen(new PartyManageScreen());
-        ci.cancel(); // отменить открытие оригинального меню OPaC
+        ci.cancel(); // отменить открытие оригинального меню
     }
 
 
