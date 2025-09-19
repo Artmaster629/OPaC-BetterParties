@@ -9,6 +9,7 @@ import net.minecraft.resources.ResourceLocation;
 
 import java.util.function.Consumer;
 
+//Кнопка с поддержкой текстур
 public class ColorButton extends AbstractWidget {
     private final ResourceLocation texture;
     private final Consumer<ColorButton> onPress;
