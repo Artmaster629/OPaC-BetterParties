@@ -203,8 +203,7 @@ public class GlobalTradesMenu extends AbstractContainerMenu {
     //Загрузить страницу
     private void loadPage() {
         pageContainer.clearContent();
-        List<ItemStack> items = allParties.getItemsForPage();
-
+        List<ItemStack> items = allParties.getTradeItemsForPage();
         for (int i = 0; i < items.size(); i++) {
             pageContainer.setItem(i, items.get(i));
 
