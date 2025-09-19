@@ -1,18 +1,18 @@
 package net.artmaster.openpacbp.gui;
 
-import com.mojang.logging.LogUtils;
-import net.artmaster.openpacbp.api.quests.AllPartiesContainer;
-import net.artmaster.openpacbp.api.quests.PartyInventoryData;
+import net.artmaster.openpacbp.api.gui.GlobalTradeSlot;
+import net.artmaster.openpacbp.api.trades.AllPartiesContainer;
+import net.artmaster.openpacbp.api.trades.PartyInventoryData;
 import net.artmaster.openpacbp.init.ModMenus;
 import net.artmaster.openpacbp.network.Network;
-import net.artmaster.openpacbp.network.SyncPartiesPacket;
+import net.artmaster.openpacbp.network.parties.SyncPartiesPacket;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,21 +20,26 @@ import java.util.List;
 
 public class GlobalTradesMenu extends AbstractContainerMenu {
     private final AllPartiesContainer allParties;
-    private final SimpleContainer pageContainer = new SimpleContainer(9); // для текущей страницы
-    private static final int PAGE_SIZE = 9;
+    private final SimpleContainer pageContainer = new SimpleContainer(9);
+    private static final int PAGE_SIZE = 8;
 
-    private List<SyncPartiesPacket.PartyData> syncedParties;
 
 
 
     public GlobalTradesMenu(int id, Inventory playerInv, List<PartyInventoryData> parties) {
         super(ModMenus.GLOBAL_STORAGE_TRADES.get(), id);
+
         this.allParties = new AllPartiesContainer(parties);
 
 
 
 
         loadPage();
+        if (this.allParties.getCurrentParty() != null) {
+            getPartyName();
+            getPartyColor();
+        }
+
 
         // Слоты для страницы
         int[][] positions = {
@@ -50,7 +55,8 @@ public class GlobalTradesMenu extends AbstractContainerMenu {
         };
 
         for (int i = 0; i < PAGE_SIZE; i++) {
-            this.addSlot(new Slot(pageContainer, i, positions[i][0], positions[i][1]));
+            this.addSlot(new GlobalTradeSlot(pageContainer, i, positions[i][0], positions[i][1]));
+
         }
 
         // Инвентарь игрока
@@ -63,40 +69,173 @@ public class GlobalTradesMenu extends AbstractContainerMenu {
             this.addSlot(new Slot(playerInv, k, 8 + k * 18, 176));
     }
 
-    private void loadPage() {
-        pageContainer.clearContent();
-        List<ItemStack> items = allParties.getItemsForPage();
-        for (int i = 0; i < items.size(); i++) {
-            pageContainer.setItem(i, items.get(i));
+
+
+    public static void addToSlot(SimpleContainer container, int slot, ItemStack stackToAdd, Player player) {
+        if (stackToAdd.isEmpty()) return;
+
+        ItemStack existing = container.getItem(slot);
+
+        //Если слот пустой - положить копию
+        if (existing.isEmpty()) {
+            container.setItem(slot, stackToAdd.copy());
+            return;
+        }
+
+        //(Item + NBT)
+        if (ItemStack.isSameItemSameComponents(existing, stackToAdd)) {
+            int transferable = Math.min(
+                    stackToAdd.getCount(),
+                    existing.getMaxStackSize() - existing.getCount()
+            );
+
+            if (transferable > 0) {
+                existing.grow(transferable);
+                stackToAdd.shrink(transferable);
+            }
+        //Если слот занят:
+        } else {
+            boolean placed = false;
+            //Проверить все оставшиеся слоты
+            for (int i=slot+1; i < container.getContainerSize(); i++) {
+                ItemStack existingNew = container.getItem(i);
+                //Если слот пустой - положить копию
+                if (existingNew.isEmpty()) {
+                    container.setItem(slot, stackToAdd.copy());
+                    placed=true;
+                    break;
+                }
+                //(Item + NBT)
+                if (ItemStack.isSameItemSameComponents(existingNew, stackToAdd)) {
+                    int transferable = Math.min(
+                            stackToAdd.getCount(),
+                            existingNew.getMaxStackSize() - existingNew.getCount()
+                    );
+
+                    if (transferable > 0) {
+                        existingNew.grow(transferable);
+                        stackToAdd.shrink(transferable);
+                    }
+                }
+            }
+            //Если таки нет свободных слотов - отменить всю операцию
+            if (!placed) {
+                player.closeContainer();
+                player.displayClientMessage(Component.translatable("text.openpacbp.no_slots_on_party"), false);
+                return;
+            }
+
         }
     }
 
+    //Метод покупки предмета
+    public void buyItem(int requiredSlot, int resultSlot, Player player) {
+        if (!player.level().isClientSide()) {
+            var currentParty = allParties.getCurrentParty();
+            if (currentParty == null) return;
+            ItemStack requiredItem = allParties.getCurrentParty().getContainer().getItem(requiredSlot);
+            ItemStack resultItem = allParties.getCurrentParty().getContainer().getItem(resultSlot);
+            if (player.getInventory().contains(requiredItem)) {
+
+                PartyInventoryData party = allParties.getCurrentParty();
+                if (party != null) {
+                    SimpleContainer container = party.getContainer();
+                    player.addItem(resultItem);
+
+                    //Удалить требуемый предмет
+                    for (int i = 0; i < player.getInventory().items.size(); i++) {
+                        ItemStack stack = player.getInventory().items.get(i);
+                        if (ItemStack.isSameItem(stack, requiredItem)) { // проверка Item + NBT
+                            int removeCount = Math.min(stack.getCount(), requiredItem.getCount());
+                            stack.shrink(removeCount); // уменьшает количество в стеке
+                            if (stack.isEmpty()) player.getInventory().items.set(i, ItemStack.EMPTY);
+                            break;
+                        }
+                    }
+
+                    //Добавить результат
+                    addToSlot(container, 10, requiredItem.copyWithCount(requiredItem.getCount()), player);
 
 
-    public void reloadPage() {
-        loadPage();
+                    // Удалить результат из инвентаря гильдии
+                    container.removeItem(resultSlot, resultItem.getCount());
+                    container.removeItem(requiredSlot, requiredItem.getCount());
+
+                    player.containerMenu.broadcastChanges(); // синхронизировать все слоты с клиентом
+                    player.inventoryMenu.broadcastChanges();
+
+                    //Обновить всё
+                    reloadPage();
+                    player.closeContainer();
+                    Network.sendButtonClick("openpacbp market global");
+                }
+            }
+        }
     }
 
     public AllPartiesContainer getAllParties() {
         return allParties;
     }
 
-
-
-    private void savePage() {
-        // Можно опционально сохранять изменения, если редактируемые слоты
-        // Но нужно понимать, как сопоставлять pageContainer с реальными PartyInventoryData
+    public String getPartyName() {
+        assert allParties.getCurrentParty() != null;
+        return allParties.getCurrentParty().getPartyName();
     }
 
+    public int getPartyColor() {
+        assert allParties.getCurrentParty() != null;
+        return allParties.getCurrentParty().getPartyColor();
+    }
+
+    public int getCurrentPage() {
+        return allParties.getCurrentPageIndex();
+    }
+
+    public int getTotalParties() {
+        return allParties.getTotalParties();
+    }
+
+
+
+    ////Методы управления страницами
+
+
+    //Загрузить страницу
+    private void loadPage() {
+        pageContainer.clearContent();
+        List<ItemStack> items = allParties.getItemsForPage();
+
+        for (int i = 0; i < items.size(); i++) {
+            pageContainer.setItem(i, items.get(i));
+
+        }
+        if (allParties.getTotalParties() == 0)
+            return;
+        if (allParties.getTotalPages() == 0)
+            return;
+        if (allParties.getCurrentParty() == null) return;
+        //System.out.println("allParties size: " + allParties.getTotalParties());
+    }
+
+
+    //Перезагрузить страницу
+    public void reloadPage() {
+        loadPage();
+    }
+
+    //Следующая страница
     public void nextPage() {
         allParties.nextPage();
         loadPage();
     }
 
+    //Предыдущая страница
     public void prevPage() {
         allParties.prevPage();
         loadPage();
     }
+
+    ////Методы управления GUI
 
     @Override
     public ItemStack quickMoveStack(Player player, int i) {
@@ -108,152 +247,25 @@ public class GlobalTradesMenu extends AbstractContainerMenu {
         return true;
     }
 
-    public int getCurrentPage() {
-        return allParties.getCurrentPageIndex();
-    }
-
-    public void partyPage() {
-        Network.sendButtonClick("openpac-quests");
-    }
-
-    public int getTotalParties() {
-        return allParties.getTotalParties();
-    }
-
-
-
+    //Технический метод синхронизации списка гильдий и их предметов
     public void setParties(List<SyncPartiesPacket.PartyData> parties) {
-        // Создаём новый AllPartiesContainer только с предметами
+        // AllPartiesContainer только с предметами
         List<PartyInventoryData> partyContainers = new ArrayList<>();
         for (var p : parties) {
-            PartyInventoryData pid = new PartyInventoryData(p.items().size()); // только размер
-            for (int i = 0; i < p.items().size(); i++) {
+            PartyInventoryData pid = new PartyInventoryData(9);
+
+            assert !p.items().isEmpty();
+            for (int i = 0; i < 8; i++) { // ограничение
                 pid.getContainer().setItem(i, p.items().get(i));
+                pid.setPartyName(p.partyName());
+                pid.setPartyColor(p.color());
+
             }
             partyContainers.add(pid);
         }
 
-        this.allParties.updateContainers(partyContainers); // метод внутри AllPartiesContainer
-        this.syncedParties = parties; // сохраняем для имени/цвета, если нужно
+        this.allParties.updateContainers(partyContainers);
         loadPage();
     }
 
 }
-
-
-//public class GlobalTradesMenu extends AbstractContainerMenu {
-//    private final List<PartyInventoryData> parties;
-//    private final AllPartiesContainer pageContainer;
-//    private int currentPage = 0;
-//
-//
-//
-//    public GlobalTradesMenu(int id, Inventory playerInv, List<PartyInventoryData> parties) {
-//        super(ModMenus.GLOBAL_STORAGE_TRADES.get(), id);
-//        this.parties = parties;
-//        this.pageContainer = new AllPartiesContainer(parties); // одна пати = 9 слотов
-//
-//        loadPage(0);
-//
-//        // Слоты текущей пати
-//        int slotsToShow = Math.min(9, pageContainer.getContainerSize());
-//        for (int i = 0; i < slotsToShow; i++) {
-//            this.addSlot(new Slot(pageContainer, i, 62 + (i % 3) * 18, 17 + (i / 3) * 18));
-//        }
-//
-//        // Инвентарь игрока
-//        for (int i = 0; i < 3; i++) {
-//            for (int j = 0; j < 9; j++) {
-//                this.addSlot(new Slot(playerInv, j + i * 9 + 9, 8 + j * 18, 118 + i * 18));
-//
-//            }
-//        }
-//        // Хотбар
-//        for (int k = 0; k < 9; k++) {
-//            this.addSlot(new Slot(playerInv, k, 8 + k * 18, 176));
-//        }
-//    }
-//
-//    @Override
-//    public boolean stillValid(Player player) {
-//        return true;
-//    }
-//
-//    @Override
-//    public void removed(Player player) {
-//        if (!player.level().isClientSide()) {
-//            savePage();
-//        }
-//        super.removed(player);
-//    }
-//
-//    private void loadPage(int page) {
-//        if (page < 0 || page >= parties.size()) return;
-//
-//        savePage(); // сохраняем текущую
-//        currentPage = page;
-//        pageContainer.clearContent();
-//
-//        SimpleContainer c = parties.get(page).getContainer();
-//        for (int i = 0; i < Math.min(pageContainer.getContainerSize(), c.getContainerSize()); i++) {
-//            pageContainer.setItem(i, c.getItem(i).copy());
-//        }
-//    }
-//
-//    private void savePage() {
-//        if (currentPage < 0 || currentPage >= parties.size()) return;
-//        SimpleContainer c = parties.get(currentPage).getContainer();
-//        for (int i = 0; i < Math.min(9, c.getContainerSize()); i++) {
-//            c.setItem(i, pageContainer.getItem(i));
-//        }
-//    }
-//
-//    public void nextPage() {
-//        if (currentPage < parties.size() - 1) {
-//            loadPage(currentPage + 1);
-//        }
-//    }
-//
-//    public void prevPage() {
-//        if (currentPage > 0) {
-//            loadPage(currentPage - 1);
-//        }
-//    }
-//
-//    public int getCurrentPage() {
-//        return currentPage;
-//    }
-//
-//    public int getTotalPages() {
-//        return parties.size();
-//    }
-//
-//    @Override
-//    public ItemStack quickMoveStack(Player player, int index) {
-//        ItemStack itemstack = ItemStack.EMPTY;
-//        Slot slot = this.slots.get(index);
-//        if (slot != null && slot.hasItem()) {
-//            ItemStack stack = slot.getItem();
-//            itemstack = stack.copy();
-//
-//            int containerSize = this.pageContainer.getContainerSize();
-//
-//            if (index < containerSize) {
-//                if (!this.moveItemStackTo(stack, containerSize, this.slots.size(), true)) {
-//                    return ItemStack.EMPTY;
-//                }
-//            } else {
-//                if (!this.moveItemStackTo(stack, 0, containerSize, false)) {
-//                    return ItemStack.EMPTY;
-//                }
-//            }
-//
-//            if (stack.isEmpty()) {
-//                slot.set(ItemStack.EMPTY);
-//            } else {
-//                slot.setChanged();
-//            }
-//        }
-//        return itemstack;
-//    }
-//}
