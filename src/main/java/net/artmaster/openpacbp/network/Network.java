@@ -1,13 +1,16 @@
 package net.artmaster.openpacbp.network;
 
 import net.artmaster.openpacbp.ModMain;
-import net.artmaster.openpacbp.api.quests.GlobalStorageData;
-import net.artmaster.openpacbp.api.quests.PartyInventoryData;
-import net.artmaster.openpacbp.api.quests.PartyStorageManager;
-import net.artmaster.openpacbp.network.party_color.GetPartyColorClientPacket;
-import net.artmaster.openpacbp.network.party_color.PartyColorResponsePacket;
-import net.artmaster.openpacbp.network.party_name.GetPartyNameClientPacket;
-import net.artmaster.openpacbp.network.party_name.PartyNameResponsePacket;
+import net.artmaster.openpacbp.api.trades.GlobalStorageData;
+import net.artmaster.openpacbp.api.trades.PartyInventoryData;
+import net.artmaster.openpacbp.api.trades.StorageManager;
+import net.artmaster.openpacbp.gui.GlobalTradesMenu;
+import net.artmaster.openpacbp.network.parties.RequestAllPartiesPacket;
+import net.artmaster.openpacbp.network.parties.SyncPartiesPacket;
+import net.artmaster.openpacbp.network.parties.party_color.GetPartyColorClientPacket;
+import net.artmaster.openpacbp.network.parties.party_color.PartyColorResponsePacket;
+import net.artmaster.openpacbp.network.parties.party_name.GetPartyNameClientPacket;
+import net.artmaster.openpacbp.network.parties.party_name.PartyNameResponsePacket;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
@@ -23,8 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static net.artmaster.openpacbp.api.quests.PartyStorageManager.getGlobalStorage;
-import static net.artmaster.openpacbp.network.ClientPacketHandler.handleSyncParties;
+import static net.artmaster.openpacbp.api.trades.StorageManager.getGlobalStorage;
 
 
 @Mod("openpacbp")
@@ -68,16 +70,17 @@ public class Network {
 
 
         // -------------------- Клиентские пакеты (сервер -> клиент) --------------------
-        registrarServer.playToClient(
-                OpenGuiPacket.TYPE,
-                OpenGuiPacket.CODEC,
-                (packet, ctx) -> ctx.enqueueWork(ClientPacketHandler::handleOpenGui)
-        );
 
         registrarServer.playToClient(
                 SyncPartiesPacket.TYPE,
                 SyncPartiesPacket.CODEC,
                 (packet, ctx) -> ctx.enqueueWork(() -> ClientPacketHandler.handleSyncParties(packet))
+        );
+
+        registrarServer.playToClient(
+                OpenGuiPacket.TYPE,
+                OpenGuiPacket.CODEC,
+                (packet, ctx) -> ctx.enqueueWork(ClientPacketHandler::handleOpenGui)
         );
 
         registrarServer.playToClient(
@@ -96,6 +99,21 @@ public class Network {
                 PartyColorResponsePacket.TYPE,
                 PartyColorResponsePacket.CODEC,
                 (packet, ctx) -> ctx.enqueueWork(() -> ClientPacketHandler.handlePartyColor(packet))
+        );
+
+        registrarClient.playToServer(
+                BuyItemPacket.TYPE,
+                BuyItemPacket.CODEC,
+                (packet, ctx) -> ctx.enqueueWork(() -> {
+                    ServerPlayer player = (ServerPlayer) ctx.player();
+                    if (player.containerMenu instanceof GlobalTradesMenu menu) {
+                        if (menu.getAllParties().getTotalParties() == 0) {
+                            System.out.println("Server-side allParties is empty!");
+                            return;
+                        }
+                        menu.buyItem(packet.requiredSlot(), packet.resultSlot(), player);
+                    }
+                })
         );
 
 
@@ -141,7 +159,7 @@ public class Network {
                     // Формируем пакет
                     List<SyncPartiesPacket.PartyData> packetData = new ArrayList<>();
                     // Здесь нужно **заполнить packetData из storage**, иначе клиент получит пустой список
-                    GlobalStorageData storage = PartyStorageManager.getGlobalStorage(player.server, player.getUUID());
+                    GlobalStorageData storage = StorageManager.getGlobalStorage(player.server, player.getUUID());
                     if (storage != null) {
                         var provider = player.server.registryAccess();
                         for (var entry : storage.getAll().entrySet()) {
@@ -188,7 +206,7 @@ public class Network {
     }
 
     public static void sendAllParties(ServerPlayer player) {
-        GlobalStorageData storage = PartyStorageManager.getGlobalStorage(player.server, player.getUUID());
+        GlobalStorageData storage = StorageManager.getGlobalStorage(player.server, player.getUUID());
         if (storage == null) return;
 
         List<SyncPartiesPacket.PartyData> packetData = new ArrayList<>();
@@ -198,7 +216,7 @@ public class Network {
             UUID partyId = entry.getKey();
             PartyInventoryData inv = entry.getValue();
             List<ItemStack> items = new ArrayList<>();
-            for (int i = 0; i < inv.getContainer().getContainerSize(); i++) {
+            for (int i = 0; i < SyncPartiesPacket.TRADE_SLOTS; i++) {
                 items.add(inv.getContainer().getItem(i).copy());
             }
             packetData.add(new SyncPartiesPacket.PartyData(
@@ -240,6 +258,15 @@ public class Network {
     public static void sendButtonClick(String command) {
         Minecraft.getInstance().getConnection().send(new ButtonClickPacket(command));
     }
+
+
+    public static void buyItem(int page, int requiredSlot, int resultSlot) {
+        Minecraft.getInstance().getConnection().send(new BuyItemPacket(page, requiredSlot, resultSlot));
+    }
+
+
+
+
 
     private static String cachedPartyName = "";
     private static int cachedPartyColor = 0xFFFFFF;
