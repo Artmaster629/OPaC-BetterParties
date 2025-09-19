@@ -1,6 +1,6 @@
-package net.artmaster.openpacbp.api.quests;
+package net.artmaster.openpacbp.api.trades;
 
-import net.artmaster.openpacbp.network.SyncPartiesPacket;
+import net.artmaster.openpacbp.network.parties.SyncPartiesPacket;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.item.ItemStack;
 
@@ -11,13 +11,16 @@ import java.util.List;
 public class AllPartiesContainer {
     private final List<PartyInventoryData> parties;
     private int currentPage = 0;
-    private final int pageSize = 9; // слотов на одной странице
+    private final int pageSize = SyncPartiesPacket.TRADE_SLOTS;
 
+
+    //Конструктор
     public AllPartiesContainer(List<PartyInventoryData> parties) {
-        // Гарантируем, что всегда ArrayList
         this.parties = new ArrayList<>(parties);
     }
 
+
+    //Методы управления страницами
     public PartyInventoryData getCurrentParty() {
         if (currentPage < 0 || currentPage >= parties.size()) return null;
         return parties.get(currentPage);
@@ -31,10 +34,6 @@ public class AllPartiesContainer {
         if (currentPage > 0) currentPage--;
     }
 
-    public int getCurrentPageIndex() {
-        return currentPage;
-    }
-
     public int getTotalPages() {
         int totalItems = parties.stream()
                 .mapToInt(p -> p.getContainer().getContainerSize())
@@ -42,6 +41,13 @@ public class AllPartiesContainer {
         return Math.max(1, (int)Math.ceil(totalItems / (double)pageSize));
     }
 
+    public int getCurrentPageIndex() {
+        return currentPage;
+    }
+
+
+
+    //Синхронизация гильдий, контейнеров
     public int getTotalParties() {
         return parties.size();
     }
@@ -55,32 +61,14 @@ public class AllPartiesContainer {
     public void updateParties(List<SyncPartiesPacket.PartyData> newParties) {
         this.parties.clear();
         for (var pd : newParties) {
-            this.parties.add(pd.toPartyInventoryData()); // Нужно написать метод конверсии PartyData -> PartyInventoryData
+            this.parties.add(pd.toPartyInventoryData());
         }
         currentPage = 0;
     }
 
 
 
-    /** Получаем список ItemStack для текущей страницы */
-//    public List<ItemStack> getItemsForPage() {
-//        List<ItemStack> allItems = new ArrayList<>();
-//        for (PartyInventoryData party : parties) {
-//            SimpleContainer container = party.getContainer();
-//            for (int i = 0; i < container.getContainerSize(); i++) {
-//                ItemStack stack = container.getItem(i);
-//                if (!stack.isEmpty()) allItems.add(stack);
-//            }
-//        }
-//
-//        int start = currentPage * pageSize;
-//        int end = Math.min(start + pageSize, allItems.size());
-//        if (start >= allItems.size()) return Collections.emptyList();
-//        return allItems.subList(start, end);
-//    }
-
-
-
+    //Получение предметов на страницу
     public List<ItemStack> getItemsForPage() {
         if (currentPage < 0 || currentPage >= parties.size()) {
             return Collections.emptyList();
