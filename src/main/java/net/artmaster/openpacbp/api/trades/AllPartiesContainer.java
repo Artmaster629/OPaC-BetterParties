@@ -87,4 +87,24 @@ public class AllPartiesContainer {
 
         return items;
     }
+
+    //Получение предметов только из торговых слотов
+    public List<ItemStack> getTradeItemsForPage() {
+        if (currentPage < 0 || currentPage >= parties.size()) {
+            return Collections.emptyList();
+        }
+
+        PartyInventoryData currentParty = parties.get(currentPage);
+        SimpleContainer container = currentParty.getContainer();
+        List<ItemStack> items = new ArrayList<>();
+
+        for (int i = 0; i < 9; i++) {
+            ItemStack stack = container.getItem(i);
+            if (!stack.isEmpty()) {
+                items.add(stack);
+            }
+        }
+
+        return items;
+    }
 }
