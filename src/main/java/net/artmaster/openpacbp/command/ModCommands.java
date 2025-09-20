@@ -52,10 +52,10 @@ public class ModCommands {
                                                                     List<PartyInventoryData> allParties = new ArrayList<>(global_storage.getAll().values());
                                                                     return new GlobalTradesMenu(id, inv, allParties);
                                                                 },
-                                                                Component.literal("Рынок")
+                                                                Component.translatable("gui.openpacbp.market_title")
                                                         ));
                                                     } else {
-                                                        player.sendSystemMessage(Component.translatable("text.openpacbp.no_party_in_market_pm"));
+                                                        player.sendSystemMessage(Component.translatable("text.openpacbp.no_party_in_market"));
                                                     }
                                                 }
                                             }
@@ -74,13 +74,13 @@ public class ModCommands {
                                                 IPartyManagerAPI partyManager = OpenPACServerAPI.get(server).getPartyManager();
                                                 IServerPartyAPI party = partyManager.getPartyByMember(player.getUUID());
                                                 if (party == null) {
-                                                    player.displayClientMessage(Component.translatable("text.openpacbp.no_party_pm"), false);
+                                                    player.displayClientMessage(Component.translatable("text.openpacbp.no_party"), false);
                                                     return 0;
                                                 }
                                                 if (storage != null) {
                                                     player.openMenu(new SimpleMenuProvider(
                                                             (id, inv, ply) -> new PartyTradesMenu(id, inv, storage.getContainer()),
-                                                            Component.literal("Хранилище гильдии")
+                                                            Component.translatable("gui.openpacbp.party_market_title")
                                                     ));
                                                 }
                                             }

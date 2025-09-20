@@ -23,17 +23,18 @@ public class PartyTradesScreen extends AbstractContainerScreen<PartyTradesMenu> 
         this.imageHeight = 200; // высота текстуры
     }
 
-    boolean render_end = false;
+
+    Component titleText = Component.translatable("gui.openpacbp.party_market_title");
 
     @Override
     protected void init() {
         super.init();
-        //Network.requestPartyName();
         int x = leftPos + 8;
         int y = topPos + 20;
 
+
         this.addRenderableWidget(Button.builder(
-                Component.literal("Рынок"),
+                Component.translatable("gui.openpacbp.market_global_button"),
                 (btn) -> {
                     Network.sendButtonClick("openpacbp market global");
                 }
@@ -44,6 +45,17 @@ public class PartyTradesScreen extends AbstractContainerScreen<PartyTradesMenu> 
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 4210752, false);
         graphics.drawString(this.font, this.playerInventoryTitle, 8, this.imageHeight - 94, 4210752, false);
+        int tooltipX = 10;
+        int tooltipY = 20;
+        int width = 16;
+        int height = 16;
+
+        if (mouseX >= tooltipX && mouseX <= tooltipX + width &&
+                mouseY >= tooltipY && mouseY <= tooltipY + height) {
+            graphics.renderTooltip(this.font,
+                    Component.translatable("gui.openpacbp.tooltip"),
+                    mouseX, mouseY);
+        }
     }
 
     @Override

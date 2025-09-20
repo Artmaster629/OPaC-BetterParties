@@ -7,10 +7,10 @@ import net.artmaster.openpacbp.api.trades.StorageManager;
 import net.artmaster.openpacbp.gui.GlobalTradesMenu;
 import net.artmaster.openpacbp.network.parties.RequestAllPartiesPacket;
 import net.artmaster.openpacbp.network.parties.SyncPartiesPacket;
-import net.artmaster.openpacbp.network.parties.party_color.GetPartyColorClientPacket;
-import net.artmaster.openpacbp.network.parties.party_color.PartyColorResponsePacket;
-import net.artmaster.openpacbp.network.parties.party_name.GetPartyNameClientPacket;
-import net.artmaster.openpacbp.network.parties.party_name.PartyNameResponsePacket;
+//import net.artmaster.openpacbp.network.parties.party_color.GetPartyColorClientPacket;
+//import net.artmaster.openpacbp.network.parties.party_color.PartyColorResponsePacket;
+//import net.artmaster.openpacbp.network.parties.party_name.GetPartyNameClientPacket;
+//import net.artmaster.openpacbp.network.parties.party_name.PartyNameResponsePacket;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
@@ -89,17 +89,17 @@ public class Network {
                 (packet, ctx) -> ctx.enqueueWork(() -> ClientPacketHandler.handleRunCommand(packet))
         );
 
-        registrarServer.playToClient(
-                PartyNameResponsePacket.TYPE,
-                PartyNameResponsePacket.CODEC,
-                (packet, ctx) -> ctx.enqueueWork(() -> ClientPacketHandler.handlePartyName(packet))
-        );
-
-        registrarServer.playToClient(
-                PartyColorResponsePacket.TYPE,
-                PartyColorResponsePacket.CODEC,
-                (packet, ctx) -> ctx.enqueueWork(() -> ClientPacketHandler.handlePartyColor(packet))
-        );
+//        registrarServer.playToClient(
+//                PartyNameResponsePacket.TYPE,
+//                PartyNameResponsePacket.CODEC,
+//                (packet, ctx) -> ctx.enqueueWork(() -> ClientPacketHandler.handlePartyName(packet))
+//        );
+//
+//        registrarServer.playToClient(
+//                PartyColorResponsePacket.TYPE,
+//                PartyColorResponsePacket.CODEC,
+//                (packet, ctx) -> ctx.enqueueWork(() -> ClientPacketHandler.handlePartyColor(packet))
+//        );
 
         registrarClient.playToServer(
                 BuyItemPacket.TYPE,
@@ -108,7 +108,6 @@ public class Network {
                     ServerPlayer player = (ServerPlayer) ctx.player();
                     if (player.containerMenu instanceof GlobalTradesMenu menu) {
                         if (menu.getAllParties().getTotalParties() == 0) {
-                            System.out.println("Server-side allParties is empty!");
                             return;
                         }
                         menu.buyItem(packet.requiredSlot(), packet.resultSlot(), player);
@@ -127,27 +126,27 @@ public class Network {
                 })
         );
 
-        registrarClient.playToServer(
-                GetPartyNameClientPacket.TYPE,
-                GetPartyNameClientPacket.CODEC,
-                (packet, ctx) -> ctx.enqueueWork(() -> {
-                    ServerPlayer player = (ServerPlayer) ctx.player();
-                    var inv = getGlobalStorage(player.server, player.getUUID());
-                    var partyName = inv.getAll().values().stream().toList().get(packet.partyIndex()).getPartyName();
-                    ctx.reply(new PartyNameResponsePacket(partyName));
-                })
-        );
-
-        registrarClient.playToServer(
-                GetPartyColorClientPacket.TYPE,
-                GetPartyColorClientPacket.CODEC,
-                (packet, ctx) -> ctx.enqueueWork(() -> {
-                    ServerPlayer player = (ServerPlayer) ctx.player();
-                    var inv = getGlobalStorage(player.server, player.getUUID());
-                    var partyColor = inv.getAll().values().stream().toList().get(packet.partyIndex()).getPartyColor();
-                    ctx.reply(new PartyColorResponsePacket(partyColor));
-                })
-        );
+//        registrarClient.playToServer(
+//                GetPartyNameClientPacket.TYPE,
+//                GetPartyNameClientPacket.CODEC,
+//                (packet, ctx) -> ctx.enqueueWork(() -> {
+//                    ServerPlayer player = (ServerPlayer) ctx.player();
+//                    var inv = getGlobalStorage(player.server, player.getUUID());
+//                    var partyName = inv.getAll().values().stream().toList().get(packet.partyIndex()).getPartyName();
+//                    ctx.reply(new PartyNameResponsePacket(partyName));
+//                })
+//        );
+//
+//        registrarClient.playToServer(
+//                GetPartyColorClientPacket.TYPE,
+//                GetPartyColorClientPacket.CODEC,
+//                (packet, ctx) -> ctx.enqueueWork(() -> {
+//                    ServerPlayer player = (ServerPlayer) ctx.player();
+//                    var inv = getGlobalStorage(player.server, player.getUUID());
+//                    var partyColor = inv.getAll().values().stream().toList().get(packet.partyIndex()).getPartyColor();
+//                    ctx.reply(new PartyColorResponsePacket(partyColor));
+//                })
+//        );
 
         registrarClient.playToServer(
                 RequestAllPartiesPacket.TYPE,
@@ -268,38 +267,32 @@ public class Network {
 
 
 
-    private static String cachedPartyName = "";
-    private static int cachedPartyColor = 0xFFFFFF;
-
-    // Вызывается при старте GUI, чтобы запросить имя
-    public static void requestPartyName(int partyIndex) {
-        Minecraft.getInstance().getConnection().send(new GetPartyNameClientPacket(partyIndex));
-    }
-
-    // Вызывается на клиенте, когда пришёл ответ
-    public static void setPartyName(String name) {
-        cachedPartyName = name;
-    }
-
-    // Просто возвращает последнюю известную строку
-    public static String getPartyName() {
-        return cachedPartyName;
-    }
-
-
-    public static void requestPartyColor(int partyIndex) {
-        Minecraft.getInstance().getConnection().send(new GetPartyColorClientPacket(partyIndex));
-    }
-
-    // Вызывается на клиенте, когда пришёл ответ
-    public static void setPartyColor(int color) {
-        cachedPartyColor = color;
-    }
+//    private static String cachedPartyName = "";
+//    private static int cachedPartyColor = 0xFFFFFF;
+//
+//    // Вызывается при старте GUI, чтобы запросить имя
+//    public static void requestPartyName(int partyIndex) {
+//        Minecraft.getInstance().getConnection().send(new GetPartyNameClientPacket(partyIndex));
+//    }
+//
+//    // Вызывается на клиенте, когда пришёл ответ
+//    public static void setPartyName(String name) {
+//        cachedPartyName = name;
+//    }
+//
+//    // Просто возвращает последнюю известную строку
+//
+//
+//    public static void requestPartyColor(int partyIndex) {
+//        Minecraft.getInstance().getConnection().send(new GetPartyColorClientPacket(partyIndex));
+//    }
+//
+//    // Вызывается на клиенте, когда пришёл ответ
+//    public static void setPartyColor(int color) {
+//        cachedPartyColor = color;
+//    }
 
     // Просто возвращает последнюю известную строку
-    public static int getPartyColor() {
-        return cachedPartyColor;
-    }
 
     // Отправка пати (клиент -> сервер)
     //public static void getPartyByUUID(UUID uuid) {

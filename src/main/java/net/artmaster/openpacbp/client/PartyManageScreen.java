@@ -2,8 +2,6 @@ package net.artmaster.openpacbp.client;
 
 import net.artmaster.openpacbp.api.gui.ColorButton;
 import net.artmaster.openpacbp.network.Network;
-import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -15,8 +13,6 @@ import net.minecraft.resources.ResourceLocation;
 import xaero.pac.client.api.OpenPACClientAPI;
 import xaero.pac.client.claims.api.IClientClaimsManagerAPI;
 import xaero.pac.client.parties.party.api.IClientPartyStorageAPI;
-import xaero.pac.common.parties.party.ally.api.IPartyAllyAPI;
-import xaero.pac.common.parties.party.api.IPartyPlayerInfoAPI;
 import xaero.pac.common.parties.party.member.api.IPartyMemberAPI;
 
 
@@ -28,7 +24,6 @@ import java.util.Objects;
 public class PartyManageScreen extends Screen {
 
 
-    Minecraft mc = Minecraft.getInstance();
 
 
 
@@ -39,34 +34,25 @@ public class PartyManageScreen extends Screen {
     ResourceLocation lightBlueButtonTexture = ResourceLocation.fromNamespaceAndPath("openpacbp", "textures/buttons/light_blue_button.png");
     ResourceLocation blueButtonTexture = ResourceLocation.fromNamespaceAndPath("openpacbp", "textures/buttons/blue_button.png");
     ResourceLocation purpleButtonTexture = ResourceLocation.fromNamespaceAndPath("openpacbp", "textures/buttons/purple_button.png");
+    ResourceLocation darkGrayButtonTexture = ResourceLocation.fromNamespaceAndPath("openpacbp", "textures/buttons/dark_gray_button.png");
+    ResourceLocation grayButtonTexture = ResourceLocation.fromNamespaceAndPath("openpacbp", "textures/buttons/gray_button.png");
+    ResourceLocation blackButtonTexture = ResourceLocation.fromNamespaceAndPath("openpacbp", "textures/buttons/black_button.png");
+
+
 
     List<Object> members = new ArrayList<>();
-    List<Object> allies = new ArrayList<>();
-    List<Object> invites = new ArrayList<>();
 
     IClientClaimsManagerAPI claimsManager = OpenPACClientAPI.get().getClaimsManager();
     IClientPartyStorageAPI partyManager = OpenPACClientAPI.get().getClientPartyStorage();
     List<IPartyMemberAPI> members_list = Objects.requireNonNull(partyManager.getParty()).getMemberInfoStream().toList();
-    List<IPartyAllyAPI> allies_list = Objects.requireNonNull(partyManager.getParty()).getAllyPartiesStream().toList();
-    List<IPartyPlayerInfoAPI> invites_list = Objects.requireNonNull(partyManager.getParty()).getInvitedPlayersStream().toList();
 
-    protected void getPartyMembers() { //вот тут что-то не так
+    protected void getPartyMembers() {
         if (members_list.size() == 1) {
             members.add(partyManager.getParty().getOwner().getUsername()+"["+partyManager.getParty().getOwner().getRank()+"]");
         } else {
             for (int i=0; i < members_list.size(); i++) {
                 members.add(members_list.get(i).getUsername()+"["+members_list.get(i).getRank()+"]");
             }
-        }
-    }
-    protected void getPartyAllies() {
-        for (int i=0; i< allies_list.size(); i++) {
-            allies.add(allies_list.get(i).getPartyId());
-        }
-    }
-    protected void getPartyInvites() {
-        for (int i=0; i< invites_list.size(); i++) {
-            invites.add(invites_list.get(i).getUsername());
         }
     }
 
@@ -85,7 +71,7 @@ public class PartyManageScreen extends Screen {
     private EditBox colorBox;
     private EditBox managePlayerBox;
     public PartyManageScreen() {
-        super(Component.literal("Управление гильдией"));
+        super(Component.translatable("gui.openpacbp.party_manage_screen"));
     }
 
     public boolean isPauseScreen() {
@@ -105,7 +91,7 @@ public class PartyManageScreen extends Screen {
                 60,
                 200,
                 20,
-                Component.literal("Имя гильдии")
+                Component.translatable("gui.openpacbp.party_manage_name_textbox")
         );
         this.colorBox = new EditBox(
                 this.font,
@@ -113,7 +99,7 @@ public class PartyManageScreen extends Screen {
                 100,
                 200,
                 20,
-                Component.literal("Цвет гильдии")
+                Component.translatable("gui.openpacbp.party_manage_color_textbox")
         );
         this.managePlayerBox = new EditBox(
                 this.font,
@@ -121,11 +107,11 @@ public class PartyManageScreen extends Screen {
                 160,
                 200,
                 20,
-                Component.literal("Выбор игрока")
+                Component.translatable("gui.openpacbp.party_manage_player_textbox")
         );
         this.addRenderableWidget(
                 Button.builder(
-                        Component.literal("Сохранить"),
+                        Component.translatable("gui.openpacbp.party_manage_save_button_text"),
                         (btn) -> onButtonClick()
                         ).bounds(
                         this.textBox.getX()+100,
@@ -136,18 +122,30 @@ public class PartyManageScreen extends Screen {
         );
         this.addRenderableWidget(
                 Button.builder(
-                                Component.literal("Выйти"),
+                                Component.translatable("gui.openpacbp.party_manage_close_button_text"),
                                 (btn) -> onExitButtonClick()
                         ).bounds(
                                 this.textBox.getX(),
                                 this.managePlayerBox.getY()+45,
-                                this.textBox.getWidth()/2,
+                                40,
                                 20)
                         .build()
         );
         this.addRenderableWidget(
                 Button.builder(
-                                Component.literal("Пригласить"),
+                                Component.translatable("gui.openpacbp.party_manage_market_button_text"),
+                                (btn) -> onMarketSettingsMenuOpen()
+                        ).bounds(
+                                this.textBox.getX()+40,
+                                this.managePlayerBox.getY()+45,
+                                60,
+                                20)
+                        .build()
+        );
+
+        this.addRenderableWidget(
+                Button.builder(
+                                Component.translatable("gui.openpacbp.party_manage_invite_button_text"),
                                 (btn) -> onInviteButtonClick()
                         ).bounds(
                                 this.managePlayerBox.getX(),
@@ -158,7 +156,7 @@ public class PartyManageScreen extends Screen {
         );
         this.addRenderableWidget(
                 Button.builder(
-                                Component.literal("Кикнуть"),
+                                Component.translatable("gui.openpacbp.party_manage_kick_button_text"),
                                 (btn) -> onKickButtonClick()
                         ).bounds(
                                 this.managePlayerBox.getX()+65,
@@ -250,18 +248,30 @@ public class PartyManageScreen extends Screen {
                 btn -> onColorButtonClick("6a2e6c")
         ));
 
+        this.addRenderableWidget(new ColorButton(
+                this.colorBox.getX()+140, this.colorBox.getY()+20, 20, 20,
+                grayButtonTexture,
+                Component.literal(""),
+                btn -> onColorButtonClick("787878")
+        ));
 
-        this.addRenderableWidget(
-                Button.builder(
-                                Component.literal("Квесты"),
-                                (btn) -> onQuestMenuOpen()
-                        ).bounds(
-                                this.managePlayerBox.getX()+130,
-                                this.managePlayerBox.getY()+80,
-                                50,
-                                20)
-                        .build()
-        );
+
+        this.addRenderableWidget(new ColorButton(
+                this.colorBox.getX()+160, this.colorBox.getY()+20, 20, 20,
+                darkGrayButtonTexture,
+                Component.literal(""),
+                btn -> onColorButtonClick("434343")
+        ));
+
+        this.addRenderableWidget(new ColorButton(
+                this.colorBox.getX()+180, this.colorBox.getY()+20, 20, 20,
+                blackButtonTexture,
+                Component.literal(""),
+                btn -> onColorButtonClick("101010")
+        ));
+
+
+
 
 
 
@@ -282,28 +292,58 @@ public class PartyManageScreen extends Screen {
 
 
 
+
+
         assert this.minecraft != null;
 
         assert this.minecraft.player != null;
+        claimsManager.getPlayerInfo(this.minecraft.player.getUUID()).getClaimsColor();
         int claims = claimsManager.getPlayerInfo(this.minecraft.player.getUUID()).getClaimCount();
 
 
 
 
 
+        Component limit = Component.translatable(
+                "gui.openpacbp.party_manage_chunks_text",
+                claims, claimsManager.getClaimLimit()
+        );
+
+        Component partyName = Component.translatable(
+                "gui.openpacbp.party_manage_party_name_text",
+                partyManager.getPartyName()
+        );
+
+        Component partyOwner = Component.translatable(
+                "gui.openpacbp.party_manage_party_owner_text",
+                partyManager.getParty().getOwner().getUsername()
+        );
+
+        Component partyMembersCount = Component.translatable(
+                "gui.openpacbp.party_manage_member_count_text",
+                partyManager.getUIMemberCount(),
+                partyManager.getMemberLimit()
+        );
+
+        Component partyAlliesCount = Component.translatable(
+                "gui.openpacbp.party_manage_allies_count_text",
+                partyManager.getUIAllyCount(),
+                partyManager.getAllyLimit()
+        );
+
+        Component partyInvitesCount = Component.translatable(
+                "gui.openpacbp.party_manage_invites_count_text",
+                partyManager.getUIInviteCount(),
+                partyManager.getInviteLimit()
+        );
+
+        Component partyColor = Component.translatable(
+                "gui.openpacbp.party_manage_party_color_text",
+                String.valueOf(TextColor.fromRgb(claimsManager.getPlayerInfo(this.minecraft.player.getUUID()).getClaimsColor()))
+        );
 
 
-        String limit = "Чанки: "+claims+"/"+claimsManager.getClaimLimit();;
-        String partyName = "Гильдия: "+partyManager.getPartyName();
-        String partyOwner = "Владелец: "+partyManager.getParty().getOwner().getUsername();
-        String partyMembersCount = "Участников: "+partyManager.getUIMemberCount()+"/"+partyManager.getMemberLimit();
-        String partyAlliesCount = "Союзников: "+partyManager.getUIAllyCount()+"/"+partyManager.getAllyLimit();
-        String partyInvitesCount = "Приглашений: "+partyManager.getUIInviteCount()+"/"+partyManager.getInviteLimit();
-        Component partyColor = Component.literal("Цвет: ").withStyle(ChatFormatting.WHITE)
-                .append(Component.literal(""+TextColor.fromRgb(claimsManager.getPlayerInfo(this.minecraft.player.getUUID()).getClaimsColor())).withStyle(style -> style.withColor(TextColor.fromRgb(claimsManager.getPlayerInfo(this.minecraft.player.getUUID()).getClaimsColor())))
-                );
-
-
+        Component partyManageTitleText = Component.translatable("gui.openpacbp.party_manage_screen_title");
 
         float bigScale = 2.0f; // 2x больше обычного
         guiGraphics.pose().pushPose();
@@ -312,7 +352,7 @@ public class PartyManageScreen extends Screen {
         int x = (int) (this.textBox.getWidth()*1.655 / 2f / bigScale);
         int y = (int) (20 / bigScale);
 
-        guiGraphics.drawCenteredString(this.font, "СИСТЕМА УПРАВЛЕНИЯ ГИЛЬДИЯМИ", x, y, 0xFFFFFF);
+        guiGraphics.drawCenteredString(this.font, partyManageTitleText, x, y, 0xFFFFFF);
 
         guiGraphics.pose().popPose();
 
@@ -320,13 +360,11 @@ public class PartyManageScreen extends Screen {
 
 
 
+        guiGraphics.drawString(this.font, Component.translatable("gui.openpacbp.party_manage_name_text_string"), 0, this.textBox.getY()-10, 0xFFFFFF);
+        guiGraphics.drawString(this.font, Component.translatable("gui.openpacbp.party_manage_color_text_string"), 0, this.colorBox.getY()-10, 0xFFFFFF);
+        guiGraphics.drawString(this.font, Component.translatable("gui.openpacbp.party_manage_player_actions_text_string"), 0, this.managePlayerBox.getY()-10, 0xFFFFFF);
 
 
-
-
-        guiGraphics.drawString(this.font, "Имя гильдии", 0, this.textBox.getY()-10, 0xFFFFFF);
-        guiGraphics.drawString(this.font, "Цвет гильдии", 0, this.colorBox.getY()-10, 0xFFFFFF);
-        guiGraphics.drawString(this.font, "Действия с игроком", 0, this.managePlayerBox.getY()-10, 0xFFFFFF);
 
 
 
@@ -334,7 +372,11 @@ public class PartyManageScreen extends Screen {
 
         guiGraphics.drawString(this.font, partyName,this.textBox.getWidth()+20, this.textBox.getY(), 0xFFFFFF);
         guiGraphics.drawString(this.font, partyOwner, this.textBox.getWidth()+20, this.textBox.getY() + 20, 0xFFFFFF);
-        guiGraphics.drawString(this.font, partyColor, this.textBox.getWidth()+20, this.textBox.getY() + 40, 0xFFFFFF);
+        guiGraphics.drawString(this.font, partyColor.copy().withStyle(style -> style.withColor(
+                TextColor.fromRgb(
+                        claimsManager.getPlayerInfo(this.minecraft.player.getUUID()).getClaimsColor()
+                )
+        )), this.textBox.getWidth()+20, this.textBox.getY() + 40, 0xFFFFFF);
         guiGraphics.drawString(this.font, limit, this.textBox.getWidth()+20, this.textBox.getY() + 60, 0xFFFFFF);
         guiGraphics.drawString(this.font, partyInvitesCount, this.textBox.getWidth()+20, this.textBox.getY() + 80, 0xFFFFFF);
         guiGraphics.drawString(this.font, partyAlliesCount, this.textBox.getWidth()+20, this.textBox.getY() + 100, 0xFFFFFF);
@@ -441,14 +483,14 @@ public class PartyManageScreen extends Screen {
                     //player.closeContainer();
                 }
                 if (!this.textBox.getValue().isEmpty() || !this.colorBox.getValue().isEmpty()) {
-                    this.minecraft.player.sendSystemMessage(Component.literal("Изменения применены!"));
+                    this.minecraft.player.sendSystemMessage(Component.translatable("text.openpacbp.changes_applied"));
                 }
             }
         }
     }
 
-    private void onQuestMenuOpen() {
-        Network.sendButtonClick("openpac-quests");
+    private void onMarketSettingsMenuOpen() {
+        Network.sendButtonClick("openpacbp market settings");
     }
 
     private void onExitButtonClick() {
@@ -481,7 +523,10 @@ public class PartyManageScreen extends Screen {
 
                 } else if (members.toString().contains(this.textBox.getValue())) {
                     player.closeContainer();
-                    this.minecraft.player.sendSystemMessage(Component.literal("Игрок "+this.managePlayerBox.getValue()+" уже в нашей гильдии!"));
+                    this.minecraft.player.sendSystemMessage(Component.translatable(
+                            "text.openpacbp.player_already_in_party",
+                            this.managePlayerBox.getValue()
+                    ));
                 }
 
             }
@@ -500,7 +545,10 @@ public class PartyManageScreen extends Screen {
 
                 } else {
                     player.closeContainer();
-                    this.minecraft.player.sendSystemMessage(Component.literal("Игрока "+this.managePlayerBox.getValue()+" нет в нашей гильдии!"));
+                    this.minecraft.player.sendSystemMessage(Component.translatable(
+                            "text.openpacbp.player_not_in_party",
+                            this.managePlayerBox.getValue()
+                    ));
                 }
             }
         }

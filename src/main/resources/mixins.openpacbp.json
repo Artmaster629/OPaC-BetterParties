@@ -9,6 +9,7 @@
     "ClaimDenyMixin",
     "ConfigSetCommandMixin",
     "MixinOPACClientTickHandler",
-    "RemovePartyMixin"
+    "RemovePartyMixin",
+    "RemovePartyStorageOnJoinMixin"
   ]
 }

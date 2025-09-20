@@ -42,8 +42,8 @@ public class GlobalTradesScreen extends AbstractContainerScreen<GlobalTradesMenu
             menu.getPartyColor();
         }
 
-        Network.requestPartyName(menu.getCurrentPage());
-        Network.requestPartyColor(menu.getCurrentPage());
+        //Network.requestPartyName(menu.getCurrentPage());
+        //Network.requestPartyColor(menu.getCurrentPage());
 
 
 
@@ -93,8 +93,8 @@ public class GlobalTradesScreen extends AbstractContainerScreen<GlobalTradesMenu
         }).bounds(left + 96, top + 82, 18, 18).build());
 
 
-
-        this.addRenderableWidget(Button.builder(Component.literal("Наша страница"), b -> {
+        Component page = Component.translatable("gui.openpacbp.party_market_screen_button_text");
+        this.addRenderableWidget(Button.builder(page, b -> {
             Network.sendButtonClick("openpacbp market settings");
         }).bounds(x, y, 70, 20).build());
     }
@@ -103,7 +103,7 @@ public class GlobalTradesScreen extends AbstractContainerScreen<GlobalTradesMenu
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
 
 
-        String partyName = "Нет данных";
+        Component partyName = Component.translatable("gui.openpacbp.no_data_available");
         int partyColor;
 
         if ((menu.getTotalParties() == 0)) return;
@@ -111,21 +111,21 @@ public class GlobalTradesScreen extends AbstractContainerScreen<GlobalTradesMenu
 
 
         if (menu.getAllParties().getCurrentParty() != null) {
-            partyName = menu.getPartyName();
+            partyName = Component.literal(menu.getPartyName());
             partyColor = menu.getPartyColor();
         } else {
             partyColor = 0xAAAAAA;
         }
 
 
-        Component colorizedPartyName = Component.literal(partyName)
+        Component colorizedPartyName = partyName.copy()
                 .withStyle(style -> style.withColor(TextColor.fromRgb(partyColor)));
 
         graphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 4210752, false);
         graphics.drawString(this.font, this.playerInventoryTitle, 8, this.imageHeight - 94, 4210752, false);
         graphics.drawString(this.font, colorizedPartyName, 8, this.titleLabelY+40, 0xFFFFFF, true);
         graphics.drawString(this.font,
-                "Страница " + (menu.getCurrentPage() + 1) + "/" + menu.getTotalParties(),
+                Component.translatable("gui.openpacbp.page_text", (menu.getCurrentPage() + 1), menu.getTotalParties()),
                 this.titleLabelX+90, this.titleLabelY, 4210752, false);
 
     }
@@ -133,7 +133,6 @@ public class GlobalTradesScreen extends AbstractContainerScreen<GlobalTradesMenu
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTicks, int mouseX, int mouseY) {
         graphics.blit(TEXTURE, leftPos, topPos, 0, 0, imageWidth, imageHeight, imageWidth, imageHeight);
-
     }
 
 

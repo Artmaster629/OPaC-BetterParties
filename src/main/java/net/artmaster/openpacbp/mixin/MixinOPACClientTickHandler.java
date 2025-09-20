@@ -31,7 +31,7 @@ public class MixinOPACClientTickHandler {
         IClientPartyStorageAPI partyManager = OpenPACClientAPI.get().getClientPartyStorage();
         IClientPartyAPI party = partyManager.getParty();
         if (party == null) {
-            player.displayClientMessage(Component.translatable("text.openpacbp.no_party_pm"), false);
+            player.displayClientMessage(Component.translatable("text.openpacbp.no_party_party_manage"), false);
             ci.cancel();
             return;
         }
