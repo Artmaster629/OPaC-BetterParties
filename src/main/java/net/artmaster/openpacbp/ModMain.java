@@ -3,9 +3,6 @@ package net.artmaster.openpacbp;
 
 import com.mojang.logging.LogUtils;
 
-import net.artmaster.openpacbp.api.trades.MyAttachments;
-import net.artmaster.openpacbp.init.ModMenus;
-import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
@@ -27,14 +24,8 @@ public class ModMain {
     // FML will recognize some parameter types like IEventBus or ModContainer and pass them in automatically.
     public ModMain(IEventBus modEventBus, ModContainer modContainer) {
         // Register the commonSetup method for modloading
-        MyAttachments.register();
-        ModMenus.register(modEventBus);
         modEventBus.addListener(this::commonSetup);
 
-    }
-
-    public static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(MODID, path);
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {

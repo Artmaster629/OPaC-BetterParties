@@ -1,10 +1,7 @@
 package net.artmaster.openpacbp.network;
 
-import net.artmaster.openpacbp.client.GlobalTradesScreen;
 import net.artmaster.openpacbp.client.PartyManageScreen;
-import net.artmaster.openpacbp.network.parties.SyncPartiesPacket;
-//import net.artmaster.openpacbp.network.parties.party_color.PartyColorResponsePacket;
-//import net.artmaster.openpacbp.network.parties.party_name.PartyNameResponsePacket;
+import net.artmaster.openpacbp.network.parties.SyncAllyPartiesPacket;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.neoforged.api.distmarker.Dist;
@@ -23,19 +20,11 @@ public class ClientPacketHandler {
         }
     }
 
-//    public static void handlePartyName(PartyNameResponsePacket packet) {
-//        Network.setPartyName(packet.partyName()); // или напрямую обновляй кэш
-//    }
-//
-//    public static void handlePartyColor(PartyColorResponsePacket packet) {
-//        Network.setPartyColor(packet.partyColor());
-//    }
-
-    public static void handleSyncParties(SyncPartiesPacket packet) {
+    public static void handleSyncAllyParties(SyncAllyPartiesPacket pkt) {
         Minecraft mc = Minecraft.getInstance();
         mc.execute(() -> {
-            if (mc.screen instanceof GlobalTradesScreen screen) {
-                screen.setParties(packet.parties());
+            if (mc.screen instanceof PartyManageScreen screen) {
+                screen.setAllyNames(pkt.allies()); // добавим метод в экран
             }
         });
     }

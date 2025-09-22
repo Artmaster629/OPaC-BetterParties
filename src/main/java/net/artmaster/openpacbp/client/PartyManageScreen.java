@@ -1,7 +1,10 @@
 package net.artmaster.openpacbp.client;
 
 import net.artmaster.openpacbp.api.gui.ColorButton;
+import net.artmaster.openpacbp.api.gui.GuiGroup;
 import net.artmaster.openpacbp.network.Network;
+import net.artmaster.openpacbp.network.parties.SyncAllyPartiesPacket;
+import net.artmaster.openpacbp.utils.TooltipUtil;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -12,13 +15,13 @@ import net.minecraft.network.chat.TextColor;
 import net.minecraft.resources.ResourceLocation;
 import xaero.pac.client.api.OpenPACClientAPI;
 import xaero.pac.client.claims.api.IClientClaimsManagerAPI;
+import xaero.pac.client.parties.party.api.IClientPartyAPI;
 import xaero.pac.client.parties.party.api.IClientPartyStorageAPI;
+import xaero.pac.common.parties.party.api.IPartyPlayerInfoAPI;
 import xaero.pac.common.parties.party.member.api.IPartyMemberAPI;
 
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 
 public class PartyManageScreen extends Screen {
@@ -42,17 +45,28 @@ public class PartyManageScreen extends Screen {
 
     List<Object> members = new ArrayList<>();
 
+    private final Map<UUID, String> allyNames = new HashMap<>();
+
     IClientClaimsManagerAPI claimsManager = OpenPACClientAPI.get().getClaimsManager();
     IClientPartyStorageAPI partyManager = OpenPACClientAPI.get().getClientPartyStorage();
     List<IPartyMemberAPI> members_list = Objects.requireNonNull(partyManager.getParty()).getMemberInfoStream().toList();
 
     protected void getPartyMembers() {
         if (members_list.size() == 1) {
-            members.add(partyManager.getParty().getOwner().getUsername()+"["+partyManager.getParty().getOwner().getRank()+"]");
+            members.add(partyManager.getParty().getOwner().getUsername() + "[" + partyManager.getParty().getOwner().getRank() + "]");
         } else {
-            for (int i=0; i < members_list.size(); i++) {
-                members.add(members_list.get(i).getUsername()+"["+members_list.get(i).getRank()+"]");
+            for (int i = 0; i < members_list.size(); i++) {
+                members.add(members_list.get(i).getUsername() + "[" + members_list.get(i).getRank() + "]");
             }
+        }
+    }
+
+
+
+    public void setAllyNames(List<SyncAllyPartiesPacket.AllyData> allies) {
+        allyNames.clear();
+        for (SyncAllyPartiesPacket.AllyData ally : allies) {
+            allyNames.put(ally.partyId(), ally.ownerName());
         }
     }
 
@@ -70,6 +84,7 @@ public class PartyManageScreen extends Screen {
     private EditBox textBox;
     private EditBox colorBox;
     private EditBox managePlayerBox;
+    private EditBox manageAlliesBox;
     public PartyManageScreen() {
         super(Component.translatable("gui.openpacbp.party_manage_screen"));
     }
@@ -101,14 +116,49 @@ public class PartyManageScreen extends Screen {
                 20,
                 Component.translatable("gui.openpacbp.party_manage_color_textbox")
         );
-        this.managePlayerBox = new EditBox(
+        this.manageAlliesBox = new EditBox(
                 this.font,
                 0,
                 160,
                 200,
                 20,
+                Component.translatable("gui.openpacbp.party_manage_allies_textbox")
+        );
+
+        this.managePlayerBox = new EditBox(
+                this.font,
+                0,
+                220,
+                200,
+                20,
                 Component.translatable("gui.openpacbp.party_manage_player_textbox")
         );
+
+
+        this.addRenderableWidget(
+                Button.builder(
+                                Component.translatable("gui.openpacbp.party_manage_ally_add_button_text"),
+                                (btn) -> onAllyAddButtonClick()
+                        ).bounds(
+                                this.textBox.getX(),
+                                this.manageAlliesBox.getY()+20,
+                                100,
+                                20)
+                        .build()
+        );
+        this.addRenderableWidget(
+                Button.builder(
+                                Component.translatable("gui.openpacbp.party_manage_ally_remove_button_text"),
+                                (btn) -> onAllyRemButtonClick()
+                        ).bounds(
+                                this.textBox.getX()+100,
+                                this.manageAlliesBox.getY()+20,
+                                100,
+                                20)
+                        .build()
+        );
+
+
         this.addRenderableWidget(
                 Button.builder(
                         Component.translatable("gui.openpacbp.party_manage_save_button_text"),
@@ -127,18 +177,7 @@ public class PartyManageScreen extends Screen {
                         ).bounds(
                                 this.textBox.getX(),
                                 this.managePlayerBox.getY()+45,
-                                40,
-                                20)
-                        .build()
-        );
-        this.addRenderableWidget(
-                Button.builder(
-                                Component.translatable("gui.openpacbp.party_manage_market_button_text"),
-                                (btn) -> onMarketSettingsMenuOpen()
-                        ).bounds(
-                                this.textBox.getX()+40,
-                                this.managePlayerBox.getY()+45,
-                                60,
+                                100,
                                 20)
                         .build()
         );
@@ -150,7 +189,7 @@ public class PartyManageScreen extends Screen {
                         ).bounds(
                                 this.managePlayerBox.getX(),
                                 this.managePlayerBox.getY()+20,
-                                65,
+                                75,
                                 20)
                         .build()
         );
@@ -159,7 +198,7 @@ public class PartyManageScreen extends Screen {
                                 Component.translatable("gui.openpacbp.party_manage_kick_button_text"),
                                 (btn) -> onKickButtonClick()
                         ).bounds(
-                                this.managePlayerBox.getX()+65,
+                                this.managePlayerBox.getX()+75,
                                 this.managePlayerBox.getY()+20,
                                 65,
                                 20)
@@ -167,10 +206,10 @@ public class PartyManageScreen extends Screen {
         );
         this.addRenderableWidget(
                 Button.builder(
-                                Component.literal("У"),
-                                (btn) -> onButtonClick()
+                                Component.translatable("gui.openpacbp.party_manage_button_rank_member"),
+                                (btn) -> onRankMemberButtonClick()
                         ).bounds(
-                                this.managePlayerBox.getX()+130,
+                                this.managePlayerBox.getX()+140,
                                 this.managePlayerBox.getY()+20,
                                 20,
                                 20)
@@ -178,10 +217,10 @@ public class PartyManageScreen extends Screen {
         );
         this.addRenderableWidget(
                 Button.builder(
-                                Component.literal("М"),
-                                (btn) -> onButtonClick()
+                                Component.translatable("gui.openpacbp.party_manage_button_rank_moderator"),
+                                (btn) -> onRankModeratorButtonClick()
                         ).bounds(
-                                this.managePlayerBox.getX()+150,
+                                this.managePlayerBox.getX()+160,
                                 this.managePlayerBox.getY()+20,
                                 20,
                                 20)
@@ -189,10 +228,10 @@ public class PartyManageScreen extends Screen {
         );
         this.addRenderableWidget(
                 Button.builder(
-                                Component.literal("А"),
-                                (btn) -> onButtonClick()
+                                Component.translatable("gui.openpacbp.party_manage_button_rank_admin"),
+                                (btn) -> onRankAdminButtonClick()
                         ).bounds(
-                                this.managePlayerBox.getX()+170,
+                                this.managePlayerBox.getX()+180,
                                 this.managePlayerBox.getY()+20,
                                 20,
                                 20)
@@ -301,7 +340,33 @@ public class PartyManageScreen extends Screen {
         int claims = claimsManager.getPlayerInfo(this.minecraft.player.getUUID()).getClaimCount();
 
 
-
+        if (mouseX > this.managePlayerBox.getX()+180 && mouseX < this.managePlayerBox.getX()+200 && mouseY > this.managePlayerBox.getY()+20 && mouseY < this.managePlayerBox.getY()+40) {
+            guiGraphics.renderTooltip(font, Component.translatable("tooltip.openpacbp.admin_rank_button_desc"), mouseX, mouseY);
+        }
+        if (mouseX > this.managePlayerBox.getX()+160 && mouseX < this.managePlayerBox.getX()+180 && mouseY > this.managePlayerBox.getY()+20 && mouseY < this.managePlayerBox.getY()+40) {
+            guiGraphics.renderTooltip(font, Component.translatable("tooltip.openpacbp.moderator_rank_button_desc"), mouseX, mouseY);
+        }
+        if (mouseX > this.managePlayerBox.getX()+140 && mouseX < this.managePlayerBox.getX()+160 && mouseY > this.managePlayerBox.getY()+20 && mouseY < this.managePlayerBox.getY()+40) {
+            guiGraphics.renderTooltip(font, Component.translatable("tooltip.openpacbp.member_rank_button_desc"), mouseX, mouseY);
+        }
+        if (mouseX > this.managePlayerBox.getX() && mouseX < this.managePlayerBox.getX()+200 && mouseY > this.managePlayerBox.getY() && mouseY < this.managePlayerBox.getY()+20) {
+            guiGraphics.renderComponentTooltip(font, TooltipUtil.splitTooltip("tooltip.openpacbp.manage_player_box_desc"), mouseX, mouseY);
+        }
+        if (mouseX > this.colorBox.getX() && mouseX < this.colorBox.getX()+200 && mouseY > this.colorBox.getY() && mouseY < this.colorBox.getY()+20) {
+            guiGraphics.renderComponentTooltip(font, TooltipUtil.splitTooltip("tooltip.openpacbp.color_box_desc"), mouseX, mouseY);
+        }
+        if (mouseX > this.textBox.getX() && mouseX < this.textBox.getX()+200 && mouseY > this.textBox.getY() && mouseY < this.textBox.getY()+20) {
+            guiGraphics.renderComponentTooltip(font, TooltipUtil.splitTooltip("tooltip.openpacbp.text_box_desc"), mouseX, mouseY);
+        }
+        if (mouseX > this.textBox.getX() && mouseX < this.textBox.getX()+100 && mouseY > this.managePlayerBox.getY()+45 && mouseY < this.managePlayerBox.getY()+65) {
+            guiGraphics.renderTooltip(font, Component.translatable("tooltip.openpacbp.leave_button_desc"), mouseX, mouseY);
+        }
+        if (mouseX > this.textBox.getX()+100 && mouseX < this.textBox.getX()+200 && mouseY > this.managePlayerBox.getY()+45 && mouseY < this.managePlayerBox.getY()+65) {
+            guiGraphics.renderTooltip(font, Component.translatable("tooltip.openpacbp.save_button_desc"), mouseX, mouseY);
+        }
+        if (mouseX > this.manageAlliesBox.getX() && mouseX < this.manageAlliesBox.getX()+200 && mouseY > this.manageAlliesBox.getY() && mouseY < this.manageAlliesBox.getY()+20) {
+            guiGraphics.renderComponentTooltip(font, TooltipUtil.splitTooltip("tooltip.openpacbp.manage_allies_box_desc"), mouseX, mouseY);
+        }
 
 
         Component limit = Component.translatable(
@@ -319,23 +384,23 @@ public class PartyManageScreen extends Screen {
                 partyManager.getParty().getOwner().getUsername()
         );
 
-        Component partyMembersCount = Component.translatable(
-                "gui.openpacbp.party_manage_member_count_text",
-                partyManager.getUIMemberCount(),
-                partyManager.getMemberLimit()
-        );
-
-        Component partyAlliesCount = Component.translatable(
-                "gui.openpacbp.party_manage_allies_count_text",
-                partyManager.getUIAllyCount(),
-                partyManager.getAllyLimit()
-        );
-
-        Component partyInvitesCount = Component.translatable(
-                "gui.openpacbp.party_manage_invites_count_text",
-                partyManager.getUIInviteCount(),
-                partyManager.getInviteLimit()
-        );
+//        Component partyMembersCount = Component.translatable(
+//                "gui.openpacbp.party_manage_member_count_text",
+//                partyManager.getUIMemberCount(),
+//                partyManager.getMemberLimit()
+//        );
+//
+//        Component partyAlliesCount = Component.translatable(
+//                "gui.openpacbp.party_manage_allies_count_text",
+//                partyManager.getUIAllyCount(),
+//                partyManager.getAllyLimit()
+//        );
+//
+//        Component partyInvitesCount = Component.translatable(
+//                "gui.openpacbp.party_manage_invites_count_text",
+//                partyManager.getUIInviteCount(),
+//                partyManager.getInviteLimit()
+//        );
 
         Component partyColor = Component.translatable(
                 "gui.openpacbp.party_manage_party_color_text",
@@ -362,6 +427,8 @@ public class PartyManageScreen extends Screen {
 
         guiGraphics.drawString(this.font, Component.translatable("gui.openpacbp.party_manage_name_text_string"), 0, this.textBox.getY()-10, 0xFFFFFF);
         guiGraphics.drawString(this.font, Component.translatable("gui.openpacbp.party_manage_color_text_string"), 0, this.colorBox.getY()-10, 0xFFFFFF);
+        guiGraphics.drawString(this.font, Component.translatable("gui.openpacbp.party_manage_allies_actions_text_string"), 0, this.manageAlliesBox.getY()-10, 0xFFFFFF);
+
         guiGraphics.drawString(this.font, Component.translatable("gui.openpacbp.party_manage_player_actions_text_string"), 0, this.managePlayerBox.getY()-10, 0xFFFFFF);
 
 
@@ -378,15 +445,92 @@ public class PartyManageScreen extends Screen {
                 )
         )), this.textBox.getWidth()+20, this.textBox.getY() + 40, 0xFFFFFF);
         guiGraphics.drawString(this.font, limit, this.textBox.getWidth()+20, this.textBox.getY() + 60, 0xFFFFFF);
-        guiGraphics.drawString(this.font, partyInvitesCount, this.textBox.getWidth()+20, this.textBox.getY() + 80, 0xFFFFFF);
-        guiGraphics.drawString(this.font, partyAlliesCount, this.textBox.getWidth()+20, this.textBox.getY() + 100, 0xFFFFFF);
-        guiGraphics.drawString(this.font, partyMembersCount, this.textBox.getWidth()+20, this.textBox.getY() + 120, 0xFFFFFF);
-        guiGraphics.drawString(this.font, members.toString(), this.textBox.getWidth()+20, this.textBox.getY() + 140, 0xFFFFFF);
+
+        //guiGraphics.drawString(this.font, members.toString(), this.textBox.getWidth()+20, this.textBox.getY() + 140, 0xFFFFFF);
+
+        int baseX = this.textBox.getWidth() + 20;
+        GuiGroup.MutableInt currentY = new GuiGroup.MutableInt(this.textBox.getY() + 80);
+
+// Создаём блоки
+        GuiGroup invitesGroup = new GuiGroup(
+                "gui.openpacbp.party_manage_invites_title",
+                partyManager.getParty().getInviteCount(),
+                partyManager.getInviteLimit(),
+                partyManager.getParty().getInvitedPlayersStream().map(IPartyPlayerInfoAPI::getUsername).toList()
+        );
+
+        GuiGroup alliesGroup = new GuiGroup(
+                "gui.openpacbp.party_manage_allies_title",
+                partyManager.getUIAllyCount(),
+                partyManager.getAllyLimit(),
+                new ArrayList<>(allyNames.values())
+        );
+
+        GuiGroup membersGroup = new GuiGroup(
+                "gui.openpacbp.party_manage_members_title",
+                partyManager.getUIMemberCount(),
+                partyManager.getMemberLimit(),
+                members.stream().map(Object::toString).toList()
+        );
+
+// Рендерим все блоки
+        invitesGroup.render(this.font, guiGraphics, baseX, currentY, 0xFFFFFF);
+        alliesGroup.render(this.font, guiGraphics, baseX, currentY, 0xFFFFFF);
+        membersGroup.render(this.font, guiGraphics, baseX, currentY, 0xFFFFFF);
+
+//// 1. Приглашения
+//        guiGraphics.drawString(this.font, partyInvitesCount, baseX, currentY, 0xFFFFFF);
+//        currentY += this.font.lineHeight + 2; // добавляем немного пространства
+//        List<String> invites = partyManager.getParty().getInvitedPlayersStream()
+//                .map(IPartyPlayerInfoAPI::getUsername)
+//                .toList();
+//        if (!invites.isEmpty()) {
+//            guiGraphics.drawString(this.font, Component.translatable("gui.openpacbp.party_manage_invites_title"), baseX, currentY, 0xFFFFFF);
+//            currentY += this.font.lineHeight + 2;
+//            for (String invite : invites) {
+//                guiGraphics.drawString(this.font, Component.literal(invite), baseX, currentY, 0xFFFFFF);
+//                currentY += this.font.lineHeight + 2;
+//            }
+//            currentY += 4; // небольшой отступ после списка
+//        }
+//
+//// 2. Союзники
+//        guiGraphics.drawString(this.font, partyAlliesCount, baseX, currentY, 0xFFFFFF);
+//        currentY += this.font.lineHeight + 2;
+//
+//        if (!allyNames.isEmpty()) {
+//            guiGraphics.drawString(this.font, Component.translatable("gui.openpacbp.party_manage_allies_title"), baseX, currentY, 0xFFFFFF);
+//            currentY += this.font.lineHeight + 2;
+//            for (String ownerName : allyNames.values()) {
+//                guiGraphics.drawString(this.font, Component.literal(ownerName), baseX, currentY, 0xFFFFFF);
+//                currentY += this.font.lineHeight + 2;
+//            }
+//            currentY += 4; // небольшой отступ после списка
+//        }
+//
+//// 3. Участники
+//        guiGraphics.drawString(this.font, partyMembersCount, baseX, currentY, 0xFFFFFF);
+//        currentY += this.font.lineHeight + 2;
+//
+//        if (!members.isEmpty()) {
+//            guiGraphics.drawString(this.font, Component.translatable("gui.openpacbp.party_manage_members_title"), baseX, currentY, 0xFFFFFF);
+//            currentY += this.font.lineHeight + 2;
+//            for (Object member : members) {
+//                guiGraphics.drawString(this.font, Component.literal(member.toString()), baseX, currentY, 0xFFFFFF);
+//                currentY += this.font.lineHeight + 2;
+//            }
+//        }
+
+
+
+
+
 
 
         this.textBox.render(guiGraphics, mouseX, mouseY, delta);
         this.colorBox.render(guiGraphics, mouseX, mouseY, delta);
         this.managePlayerBox.render(guiGraphics, mouseX, mouseY, delta);
+        this.manageAlliesBox.render(guiGraphics, mouseX, mouseY, delta);
     }
 
     @Override
@@ -415,6 +559,29 @@ public class PartyManageScreen extends Screen {
             return true;
         }
 
+        if (this.manageAlliesBox.isFocused() && keyCode == 258) {
+            String current = this.manageAlliesBox.getValue();
+            if (this.minecraft != null && this.minecraft.player != null && this.minecraft.getConnection() != null) {
+                var connection = this.minecraft.getConnection();
+                List<String> players = connection.getOnlinePlayers().stream()
+                        .map(info -> info.getProfile().getName())
+                        .toList();
+
+                List<String> matches = players.stream()
+                        .filter(name -> name.toLowerCase().startsWith(current.toLowerCase()))
+                        .toList();
+
+                if (!matches.isEmpty()) {
+                    if (matches.size() == 1) {
+                        this.manageAlliesBox.setValue(matches.get(0));
+                    } else {
+                        this.manageAlliesBox.setValue(matches.get(0));
+                    }
+                }
+            }
+            return true;
+        }
+
 
         if (this.textBox.keyPressed(keyCode, scanCode, modifiers) || this.textBox.canConsumeInput()) {
             return true;
@@ -423,6 +590,9 @@ public class PartyManageScreen extends Screen {
             return true;
         }
         if (this.managePlayerBox.keyPressed(keyCode, scanCode, modifiers) || this.managePlayerBox.canConsumeInput()) {
+            return true;
+        }
+        if (this.manageAlliesBox.keyPressed(keyCode, scanCode, modifiers) || this.manageAlliesBox.canConsumeInput()) {
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
@@ -440,6 +610,9 @@ public class PartyManageScreen extends Screen {
         if (this.managePlayerBox.charTyped(chr, modifiers)) {
             return true;
         }
+        if (this.manageAlliesBox.charTyped(chr, modifiers)) {
+            return true;
+        }
         return super.charTyped(chr, modifiers);
     }
 
@@ -450,6 +623,7 @@ public class PartyManageScreen extends Screen {
         this.textBox.setFocused(false);
         this.colorBox.setFocused(false);
         this.managePlayerBox.setFocused(false);
+        this.manageAlliesBox.setFocused(false);
 
         if (this.textBox.isMouseOver(mouseX, mouseY)) {
             this.textBox.setFocused(true);
@@ -457,6 +631,8 @@ public class PartyManageScreen extends Screen {
             this.colorBox.setFocused(true);
         } else if (this.managePlayerBox.isMouseOver(mouseX, mouseY)) {
             this.managePlayerBox.setFocused(true);
+        } else if (this.manageAlliesBox.isMouseOver(mouseX, mouseY)) {
+            this.manageAlliesBox.setFocused(true);
         }
 
         return handled;
@@ -469,28 +645,36 @@ public class PartyManageScreen extends Screen {
             String color = this.colorBox.getValue();
 
             if (minecraft.getConnection() != null) {
-                LocalPlayer player = minecraft.player;
 
 
+                IClientPartyAPI clientPartyAPI = OpenPACClientAPI.get().getClientPartyStorage().getParty();
+
+
+
+                if (clientPartyAPI == null) return;
 
                 if (!this.textBox.getValue().isEmpty()) {
+                    if (!clientPartyAPI.getOwner().getUUID().equals(this.minecraft.player.getUUID())) {
+                        this.minecraft.player.closeContainer();
+                        this.minecraft.player.sendSystemMessage(Component.translatable("text.openpacbp.player_not_owner"));
+                        return;
+                    }
                     Network.sendButtonClick("openpac player-config set parties.name "+text);
                     Network.sendButtonClick("openpac player-config set claims.name "+text);
-                    //player.closeContainer();
                 }
                 if (!this.colorBox.getValue().isEmpty()) {
+                    if (!clientPartyAPI.getOwner().getUUID().equals(this.minecraft.player.getUUID())) {
+                        this.minecraft.player.closeContainer();
+                        this.minecraft.player.sendSystemMessage(Component.translatable("text.openpacbp.player_not_owner"));
+                        return;
+                    }
                     Network.sendButtonClick("openpac player-config set claims.color "+color);
-                    //player.closeContainer();
                 }
                 if (!this.textBox.getValue().isEmpty() || !this.colorBox.getValue().isEmpty()) {
                     this.minecraft.player.sendSystemMessage(Component.translatable("text.openpacbp.changes_applied"));
                 }
             }
         }
-    }
-
-    private void onMarketSettingsMenuOpen() {
-        Network.sendButtonClick("openpacbp market settings");
     }
 
     private void onExitButtonClick() {
@@ -510,6 +694,53 @@ public class PartyManageScreen extends Screen {
             this.colorBox.setFocused(true);
         }
     }
+
+
+
+
+
+
+    private void onRankMemberButtonClick() {
+        if (this.minecraft != null && this.minecraft.player != null) {
+            if (!this.managePlayerBox.getValue().isEmpty()) {
+                String text = this.managePlayerBox.getValue();
+                Network.sendButtonClick("/openpac-parties member rank MEMBER " + text);
+            }
+        }
+    }
+    private void onRankModeratorButtonClick() {
+        if (this.minecraft != null && this.minecraft.player != null) {
+            if (!this.managePlayerBox.getValue().isEmpty()) {
+                String text = this.managePlayerBox.getValue();
+                Network.sendButtonClick("/openpac-parties member rank MODERATOR " + text);
+            }
+        }
+    }
+    private void onRankAdminButtonClick() {
+        if (this.minecraft != null && this.minecraft.player != null) {
+            if (!this.managePlayerBox.getValue().isEmpty()) {
+                String text = this.managePlayerBox.getValue();
+                Network.sendButtonClick("/openpac-parties member rank ADMIN " + text);
+            }
+        }
+    }
+    private void onAllyAddButtonClick() {
+        if (this.minecraft != null && this.minecraft.player != null) {
+            if (!this.manageAlliesBox.getValue().isEmpty()) {
+                String text = this.manageAlliesBox.getValue();
+                Network.sendButtonClick("/openpac-parties ally add " + text);
+            }
+        }
+    }
+    private void onAllyRemButtonClick() {
+        if (this.minecraft != null && this.minecraft.player != null) {
+            if (!this.manageAlliesBox.getValue().isEmpty()) {
+                String text = this.manageAlliesBox.getValue();
+                Network.sendButtonClick("/openpac-parties ally remove " + text);
+            }
+        }
+    }
+
     private void onInviteButtonClick() {
         if (this.minecraft != null && this.minecraft.player != null) {
             if (minecraft.getConnection() != null) {
@@ -553,6 +784,8 @@ public class PartyManageScreen extends Screen {
             }
         }
     }
+
+
 }
 
 // вызываем отрисовку миникарты
