@@ -199,6 +199,8 @@ dependencies {
     //minimap
     implementation "curse.maven:open-parties-and-claims-263420:6778051"
 
+    compileOnly "net.luckperms:api:5.4"
+
 
 }
 
