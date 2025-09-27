@@ -337,7 +337,7 @@ public class PartyManageScreen extends Screen {
 
         assert this.minecraft.player != null;
         claimsManager.getPlayerInfo(this.minecraft.player.getUUID()).getClaimsColor();
-        int claims = claimsManager.getPlayerInfo(this.minecraft.player.getUUID()).getClaimCount();
+        int claims = claimsManager.getPlayerInfo(Objects.requireNonNull(partyManager.getParty()).getOwner().getUUID()).getClaimCount();
 
 
         if (mouseX > this.managePlayerBox.getX()+180 && mouseX < this.managePlayerBox.getX()+200 && mouseY > this.managePlayerBox.getY()+20 && mouseY < this.managePlayerBox.getY()+40) {
@@ -367,6 +367,8 @@ public class PartyManageScreen extends Screen {
         if (mouseX > this.manageAlliesBox.getX() && mouseX < this.manageAlliesBox.getX()+200 && mouseY > this.manageAlliesBox.getY() && mouseY < this.manageAlliesBox.getY()+20) {
             guiGraphics.renderComponentTooltip(font, TooltipUtil.splitTooltip("tooltip.openpacbp.manage_allies_box_desc"), mouseX, mouseY);
         }
+
+
 
 
         Component limit = Component.translatable(
