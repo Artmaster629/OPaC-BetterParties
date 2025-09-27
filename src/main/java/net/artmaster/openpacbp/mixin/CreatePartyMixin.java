@@ -16,7 +16,6 @@ public class CreatePartyMixin {
     @Inject(method = "createPartyForOwner", at = @At("TAIL"))
     public void removePartyInventoryData(Player owner, CallbackInfoReturnable cir) {
 
-        System.out.println("created");
         if (owner instanceof ServerPlayer serverPlayer) {
             Network.sendCommand(serverPlayer, "openpac player-config set parties.name "+"Гильдия "+owner.getName().getString());
         }
