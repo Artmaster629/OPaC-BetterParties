@@ -5,10 +5,10 @@
   "compatibilityLevel": "JAVA_17",
   "refmap": "mixins.openpacbp.refmap.json",
   "mixins": [
-    "ClaimChangeOwnerMixin",
-    "ClaimDenyMixin",
     "ConfigSetCommandMixin",
     "CreatePartyMixin",
-    "MixinOPACClientTickHandler"
+    "MixinOPACClientTickHandler",
+    "ServerBound2",
+    "ServerboundClaimActionRequestPacketHandlerMixin"
   ]
 }
